@@ -1,0 +1,534 @@
+% Eksplorator fraktali - zarys projektu do akceptacji (wersja 2)
+% Kompilacja: pdflatex zarys_projektu_v2.tex (dwa razy)
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage{lmodern}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{fancyvrb}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usepackage[hidelinks]{hyperref}
+
+\setlist{itemsep=2pt,topsep=4pt}
+\setlength{\parskip}{4pt}
+\setlength{\parindent}{0pt}
+\setlength{\emergencystretch}{3em}
+
+\newcommand{\kod}[1]{\texttt{#1}}
+\fvset{frame=single,fontsize=\small,framesep=6pt}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \IfFileExists{AGH.pdf}
+      {\includegraphics[width=0.3\textwidth]{AGH.pdf}}
+      {\fbox{\parbox[c][4cm][c]{0.3\textwidth}{\centering logo AGH}}}\\[1cm]
+    \textsc{\LARGE Akademia Górniczo-Hutnicza\\
+    im. Stanisława Staszica w Krakowie}\\[2cm]
+    \textsc{\Large Wydział Fizyki i Informatyki Stosowanej}\\[1cm]
+    \textsc{\large Interfejsy użytkownika i biblioteki graficzne}\\[1cm]
+    {\huge \bfseries Eksplorator fraktali}\\[0.4cm]
+    {\Large Zarys projektu do akceptacji}\\[2cm]
+    {\Large \textbf{Autorzy}}\\[0.5cm]
+    {\large Jakub Piela (kapitan)\\[2pt] Marcel Gładysz\\[2pt] Patryk Pilch}\\
+    \vfill
+    \begin{flushright}
+    \textbf{Prowadzący:} dr inż. Janusz Malinowski\\
+    \textbf{Temat:} własny\\
+    \textbf{Rok akademicki:} 2026/2027\\
+    \textbf{Data złożenia:} 02.11.2026\\
+    \end{flushright}
+\end{titlepage}
+
+% ---------------------------------------------------------------
+\section{Opis projektu}
+
+Eksplorator fraktali to program w C++ do generowania, interaktywnego oglądania
+i animowania fraktali z trzech rodzin:
+\begin{itemize}
+  \item \textbf{fraktale zespolone} -- zbiór Mandelbrota i zbiory Julii,
+  \item \textbf{fraktale IFS} -- atraktory układów przekształceń afinicznych,
+        np.\ trójkąt Sierpińskiego i paproć Barnsleya,
+  \item \textbf{L-systemy} -- gramatyki przepisywania napisów rysowane grafiką
+        żółwia, np.\ krzywa Kocha i rośliny.
+\end{itemize}
+
+Użytkownik przybliża i przesuwa widok myszą, zmienia parametry i palety
+kolorów w panelu sterowania, a bieżący obraz zapisuje do pliku. Program
+tworzy też \textbf{animację płynnego przejścia (,,morfingu'') między
+fraktalami IFS}: przeliczając współczynniki przekształceń z jednego fraktala na
+drugi, generuje serię bitmap zapisywanych na dysku.
+
+Każdy piksel obrazu liczy nasz kod na procesorze. Biblioteki służą wyłącznie
+do otwarcia okna, obsługi zdarzeń, wyświetlenia gotowego bufora pikseli
+i narysowania panelu sterowania.
+
+Animacja przejścia, plik scenariusza i fraktale trójwymiarowe nawiązują do
+niewybranego tematu nr~25 (,,Generowanie i animacja fraktali''). Nasz projekt
+obejmuje jego zakres dotyczący fraktali IFS i rozszerza go o fraktale zespolone
+oraz L-systemy.
+
+% ---------------------------------------------------------------
+\section{Założenia wstępne}
+
+\begin{itemize}
+  \item \textbf{Język i środowisko:} C++17, Visual Studio 2026, Windows~11,
+        kompilacja x64. SFML jest linkowany statycznie, więc program działa
+        bez dodatkowych plików DLL.
+  \item \textbf{Biblioteki z wykładu:} SFML~3.1 (okno, zdarzenia, wyświetlenie
+        bufora pikseli), Dear ImGui z nakładką ImGui-SFML (panel sterowania)
+        oraz ImGuiFileDialog (okna wyboru plików).
+  \item \textbf{Bez OpenGL i DirectX w naszym kodzie:} obliczenia, kolorowanie,
+        rysowanie linii i rzutowanie fraktali 3D wykonuje nasz kod na CPU.
+  \item \textbf{Działanie bez plików wejściowych:} wszystkie parametry można
+        ustawić w panelu. Pliki definicji i scenariusza są opcjonalne i służą
+        do zapisu oraz wczytywania gotowych ustawień.
+  \item \textbf{Płynność:} długie obliczenia (animacja, duże obrazy) działają
+        w osobnym wątku. Interfejs nie zamarza, widać pasek postępu i można
+        przerwać generowanie.
+  \item \textbf{Okno} jest skalowalne. Po zmianie rozmiaru obraz jest
+        przeliczany w nowej rozdzielczości, a nie rozciągany.
+  \item \textbf{Oddanie projektu:} archiwum \kod{numer\_projektu.7z}
+        (kompresja Ultra) z katalogami \kod{DOC}, \kod{SRC} i \kod{BIN};
+        dokumentacja w PDF zgodna ze wzorcem.
+\end{itemize}
+
+% ---------------------------------------------------------------
+\section{Wymagania}
+
+\subsection{Wymagania podstawowe}
+
+\begin{enumerate}
+  \item \textbf{Zbiór Mandelbrota:} przybliżanie kółkiem myszy w punkt pod
+        kursorem, przesuwanie przeciąganiem, powrót do widoku startowego,
+        regulowana maksymalna liczba iteracji.
+  \item \textbf{Zbiory Julii:} parametr $c$ wybierany kliknięciem na zbiorze
+        Mandelbrota albo wpisywany w panelu.
+  \item \textbf{Kolorowanie zbiorów zespolonych:} płynne (bez widocznych pasów),
+        co najmniej trzy palety do wyboru.
+  \item \textbf{Fraktale IFS:} rysowanie grą w chaos; wbudowane trójkąt
+        Sierpińskiego, paproć Barnsleya i smok Heighwaya; edycja współczynników
+        w panelu oraz wczytywanie i zapis definicji w pliku tekstowym.
+        Kolor punktu zależy od użytego przekształcenia, a fraktal jest
+        automatycznie skalowany tak, aby mieścił się w oknie i nie był za mały.
+  \item \textbf{Animacja przejścia IFS:} płynne przejście między co najmniej
+        dwoma fraktalami w zadanej liczbie klatek, podgląd klatek w trakcie
+        generowania, zapis ponumerowanej serii obrazów PNG lub BMP. Parametry
+        ustawiane w panelu albo wczytywane z pliku scenariusza.
+  \item \textbf{L-systemy:} aksjomat, reguły, kąt i liczba iteracji z panelu
+        lub pliku; rysowanie grafiką żółwia ze stosem rozgałęzień; wbudowane
+        krzywa Kocha, smok Heighwaya i roślina; automatyczne dopasowanie
+        rysunku do okna.
+  \item \textbf{Zapis obrazu:} bieżący widok do pliku PNG lub BMP.
+  \item \textbf{Wydajność:} zbiory zespolone liczone wielowątkowo, tak aby
+        nawigacja była płynna.
+  \item \textbf{Okno:} poprawne działanie przy zmianie rozmiaru, bez
+        rozciągania obrazu.
+\end{enumerate}
+
+\subsection{Wymagania poszerzone}
+
+\begin{itemize}
+  \item \textbf{Fraktale IFS 3D:} przekształcenia przestrzenne (12
+        współczynników), własne rzutowanie perspektywiczne, pozycja
+        obserwatora ustawiana w panelu i obrót kamery myszą. Punkty dalsze są
+        ciemniejsze i nie przesłaniają bliższych (własny bufor głębi).
+  \item \textbf{Animacja przejścia dla fraktali 3D.}
+  \item \textbf{Animacja przybliżenia} zbiorów Mandelbrota i Julii eksportowana
+        jako seria klatek.
+  \item \textbf{Edytor palet:} gradient definiowany punktami kontrolnymi, zapis
+        i wczytywanie palet.
+  \item \textbf{Kolejne fraktale zespolone:} Burning Ship, Multibrot ($z^n$),
+        fraktal Newtona dla wielomianu $z^3 - 1$.
+  \item \textbf{Zakładki widoku:} zapis i odtwarzanie środka, skali, palety
+        i liczby iteracji.
+  \item \textbf{Zapis w wysokiej rozdzielczości} z antyaliasingiem
+        (supersampling).
+  \item \textbf{Głębokie przybliżenie:} arytmetyka o zwiększonej precyzji, gdy
+        \kod{double} przestaje wystarczać.
+\end{itemize}
+
+% ---------------------------------------------------------------
+\section{Analiza projektu}
+
+\subsection{Specyfikacja danych wejściowych}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l l X@{}}
+  \toprule
+  Rodzaj & Format & Zawartość \\
+  \midrule
+  Interakcja & mysz, klawiatura, panel &
+    przybliżanie, przesuwanie, wybór $c$, parametry fraktali, paleta \\
+  Definicja IFS & plik \kod{.ifs} &
+    jedno przekształcenie w wierszu: \kod{a b c d e f [p]} \\
+  Scenariusz animacji & plik \kod{.anim} &
+    rozmiar klatek, liczba punktów, fraktale kluczowe, liczba klatek przejść \\
+  L-system & plik \kod{.lsys} &
+    aksjomat, reguły w postaci \kod{F=F+F-F}, kąt, liczba iteracji \\
+  \bottomrule
+\end{tabularx}
+\end{center}
+
+Przekształcenie IFS ma postać $x' = ax + by + e$, $y' = cx + dy + f$.
+Prawdopodobieństwo $p$ jest opcjonalne. Gdy go brak, program wyznacza je
+z wyznaczników przekształceń (punkt~\ref{sec:ifs}). Wiersze zaczynające się
+od \kod{\#} są komentarzami. Przykładowy scenariusz przejścia z trójkąta
+Sierpińskiego w paproć Barnsleya w 100 klatkach:
+
+\begin{Verbatim}
+# szerokosc wysokosc punkty_na_klatke
+800 600 2000000
+# liczba fraktali kluczowych
+2
+# fraktal 1: liczba przeksztalcen, potem wiersze a b c d e f [p]
+3
+0.5 0 0 0.5 0    0
+0.5 0 0 0.5 0.5  0
+0.5 0 0 0.5 0.25 0.5
+# liczba klatek przejscia do fraktala 2
+100
+# fraktal 2
+4
+ 0.00  0.00  0.00  0.16  0  0     0.01
+ 0.85  0.04 -0.04  0.85  0  1.6   0.85
+ 0.20 -0.26  0.23  0.22  0  1.6   0.07
+-0.15  0.28  0.26  0.24  0  0.44  0.07
+\end{Verbatim}
+
+Plik L-systemu:
+\begin{Verbatim}
+axiom F
+rule F=F+F-F-F+F
+angle 90
+iterations 4
+\end{Verbatim}
+
+Błędne pliki (zła liczba wartości, niepoprawne liczby, brak sekcji) nie
+zamykają programu. Wyświetlamy komunikat z numerem wiersza, w którym wystąpił
+błąd.
+
+\subsection{Opis oczekiwanych danych wyjściowych}
+
+\begin{itemize}
+  \item \textbf{Obraz:} bieżący widok zapisany jako PNG lub BMP w rozmiarze
+        okna albo w zadanej rozdzielczości.
+  \item \textbf{Animacja:} seria ponumerowanych plików
+        \kod{klatka\_0000.png}, \kod{klatka\_0001.png}, \ldots\ w wybranym
+        katalogu. Kolejno oglądane tworzą płynną animację.
+  \item \textbf{Definicje:} bieżące ustawienia IFS, L-systemu lub scenariusza
+        zapisane do pliku w formatach opisanych powyżej.
+\end{itemize}
+
+\subsection{Struktury danych}
+
+\begin{center}
+\begin{tabularx}{\textwidth}{@{}l X@{}}
+  \toprule
+  Struktura & Zawartość \\
+  \midrule
+  \kod{Image} & bufor pikseli \kod{std::vector<std::uint32\_t>} (RGBA)
+                oraz szerokość i wysokość \\
+  \kod{ComplexView} & środek widoku $(c_x, c_y)$, skala (jednostki na piksel),
+                      maksymalna liczba iteracji \\
+  \kod{Palette} & lista punktów kontrolnych gradientu (pozycja $t$, kolor) \\
+  \kod{AffineMap} & współczynniki $a, b, c, d, e, f$ i prawdopodobieństwo $p$ \\
+  \kod{Ifs} & nazwa i \kod{std::vector<AffineMap>} \\
+  \kod{AffineMap3D} & macierz $3 \times 3$, wektor przesunięcia i $p$
+                      (poszerzenie) \\
+  \kod{AnimationScenario} & rozmiar klatek, liczba punktów na klatkę,
+                            fraktale kluczowe, liczby klatek przejść \\
+  \kod{LSystem} & aksjomat, reguły \kod{std::map<char, std::string>}, kąt,
+                  liczba iteracji \\
+  \kod{TurtleState} & pozycja $(x, y)$ i kierunek żółwia; rozgałęzienia
+                      na \kod{std::stack<TurtleState>} \\
+  \bottomrule
+\end{tabularx}
+\end{center}
+
+Każdy rodzaj fraktala implementuje wspólną klasę bazową \kod{FractalRenderer}
+z metodą \kod{render(Image\&)}. Klasy pochodne to \kod{MandelbrotRenderer},
+\kod{JuliaRenderer}, \kod{IfsRenderer} i \kod{LSystemRenderer}. Dzięki temu
+zmiana trybu w interfejsie sprowadza się do wyboru innego obiektu.
+
+\subsection{Specyfikacja interfejsu użytkownika}
+
+\begin{center}
+\begin{tikzpicture}[font=\small]
+  \draw[thick, rounded corners=2pt] (0,0) rectangle (14,7.8);
+  \draw (0,7.3) -- (14,7.3);
+  \node[anchor=west] at (0.15,7.55) {\textbf{Plik}\quad \textbf{Widok}\quad \textbf{Pomoc}};
+  \draw (0,0.45) -- (14,0.45);
+  \node[anchor=west] at (0.15,0.22)
+    {\footnotesize $x = -0.7436$,\ \ $y = 0.1318$\quad skala: $2.1\cdot10^{-5}$\quad czas obliczeń: 38 ms};
+  \fill[gray!12] (0,0.45) rectangle (9.2,7.3);
+  \node[align=center] at (4.6,3.9) {\textbf{Obszar fraktala}\\[2pt]
+    kółko -- przybliżanie w punkt pod kursorem\\
+    przeciąganie -- przesuwanie\\
+    prawy przycisk -- wybór $c$ dla zbioru Julii};
+  \draw (9.2,0.45) -- (9.2,7.3);
+  \node[anchor=north west, align=left, font=\footnotesize] at (9.35,7.15) {
+    \small\textbf{Tryb:} Mandelbrot $\blacktriangledown$\\[4pt]
+    \small\textbf{Parametry}\\
+    iteracje, $c$, współczynniki IFS,\\
+    reguły L-systemu\\[4pt]
+    \small\textbf{Paleta}\\
+    wybór palety, podgląd\\[4pt]
+    \small\textbf{Animacja}\\
+    fraktale kluczowe,\\
+    liczba klatek, katalog\\
+    {[}Generuj{]}\ \ {[}Przerwij{]}\\
+    pasek postępu\\[4pt]
+    \small\textbf{Zapis}\\
+    {[}Zapisz obraz{]}\\
+    {[}Zapisz definicję{]}};
+\end{tikzpicture}
+\end{center}
+
+Okno składa się z menu (wczytywanie i zapis plików, powrót do widoku
+startowego, informacje o programie), obszaru fraktala, panelu sterowania
+po prawej i paska stanu. Pasek stanu pokazuje współrzędne punktu pod kursorem,
+bieżącą skalę i czas obliczenia klatki. Elementy, których nie da się w danej
+chwili użyć, są wyszarzone, np.\ zapis klatek przed wygenerowaniem animacji.
+Panel i okna dialogowe tworzymy w Dear ImGui.
+
+\subsection{Wyodrębnienie i zdefiniowanie zadań}
+
+\begin{enumerate}
+  \item \textbf{Rdzeń aplikacji i interfejs:} okno, pętla zdarzeń, panel ImGui,
+        nawigacja myszą, okna dialogowe, zmiana rozmiaru okna, integracja
+        modułów.
+  \item \textbf{Fraktale zespolone:} Mandelbrot i Julia, płynne kolorowanie,
+        palety, obliczenia wielowątkowe.
+  \item \textbf{IFS i animacja:} parser plików, gra w chaos, kolorowanie,
+        dopasowanie do okna, przejścia między fraktalami, eksport klatek
+        w wątku roboczym.
+  \item \textbf{L-systemy:} parser, przepisywanie napisów, grafika żółwia,
+        rysowanie odcinków w buforze pikseli.
+  \item \textbf{Część wspólna:} klasa \kod{Image}, zapis PNG i BMP, obsługa
+        błędów wczytywania.
+\end{enumerate}
+
+\subsection{Decyzja o wyborze narzędzi programistycznych}
+
+\begin{itemize}
+  \item \textbf{Visual Studio 2026 i C++17} -- znamy je z zajęć. Standard
+        daje \kod{std::thread} i \kod{std::atomic} do wątków, \kod{<random>}
+        do losowania w grze w chaos oraz \kod{<filesystem>} do zapisu klatek.
+  \item \textbf{SFML 3.1} -- poznana na wykładzie i laboratoriach, prosta
+        obsługa okna, zdarzeń i wyświetlania bufora przez \kod{sf::Texture}.
+        \kod{sf::Image} zapisuje obrazy PNG i BMP.
+  \item \textbf{Dear ImGui, ImGui-SFML, ImGuiFileDialog} -- omawiane na
+        wykładzie. Pozwalają szybko zbudować panel z suwakami, polami liczbowymi
+        i oknami wyboru plików.
+  \item \textbf{Git} (wspólne repozytorium) do pracy zespołowej, \LaTeX\ do
+        dokumentacji, 7-Zip do archiwum.
+\end{itemize}
+
+% ---------------------------------------------------------------
+\section{Algorytmy}
+
+\subsection{Zbiory Mandelbrota i Julii}
+
+Dla każdego punktu płaszczyzny zespolonej powtarzamy przekształcenie
+\[
+  z_{n+1} = z_n^2 + c .
+\]
+W zbiorze Mandelbrota $z_0 = 0$, a $c$ jest współrzędną piksela. W zbiorze
+Julii $c$ jest stałe dla całego obrazu, a $z_0$ jest współrzędną piksela.
+Gdy $|z_n|^2 > 4$, ciąg ucieka do nieskończoności i punkt nie należy do zbioru.
+Porównujemy kwadrat modułu, więc nie liczymy pierwiastka.
+
+\textbf{Piksel i płaszczyzna zespolona.} Piksel $(p_x, p_y)$ odpowiada
+punktowi $x = c_x + (p_x - W/2)\,s$, $y = c_y - (p_y - H/2)\,s$, gdzie $s$ to
+skala. Przy przybliżaniu o czynnik $k$ nowy środek wynosi
+$\mathbf{m}' = \mathbf{q} + (\mathbf{m} - \mathbf{q})\,k$, gdzie $\mathbf{q}$
+to punkt pod kursorem. Dzięki temu punkt pod kursorem zostaje w miejscu.
+
+\textbf{Płynne kolorowanie.} Zamiast całkowitej liczby kroków $n$ używamy
+wartości ułamkowej
+\[
+  \nu = n + 1 - \log_2\bigl(\ln |z_n|\bigr),
+\]
+którą przeliczamy na kolor z palety. Usuwa to pasy kolorów. Punkty należące
+do zbioru są czarne.
+
+\subsection{Fraktale IFS -- gra w chaos}
+\label{sec:ifs}
+
+Zaczynamy od dowolnego punktu. W każdym kroku losujemy przekształcenie $w_i$
+z prawdopodobieństwem $p_i$, stosujemy je do punktu i zaznaczamy wynik.
+Pierwsze 20 punktów pomijamy, bo nie leżą jeszcze na atraktorze. Gdy
+prawdopodobieństw nie podano, przyjmujemy je proporcjonalne do pola, jakie
+przekształcenie zachowuje:
+\[
+  p_i = \frac{\max\bigl(|a_i d_i - b_i c_i|,\ \varepsilon\bigr)}
+             {\sum_j \max\bigl(|a_j d_j - b_j c_j|,\ \varepsilon\bigr)} .
+\]
+Dzięki temu punkty rozkładają się na fraktalu równomiernie. Minimalna wartość
+$\varepsilon$ chroni przekształcenia spłaszczające, np.\ łodygę paproci.
+
+\textbf{Dopasowanie do okna.} Najpierw liczymy kilka tysięcy punktów, aby
+wyznaczyć prostokąt otaczający atraktor. Dodajemy margines 5\% i dobieramy
+skalę z zachowaniem proporcji, tak aby fraktal wypełniał okno.
+
+\textbf{Kolorowanie.} Każde przekształcenie ma własny kolor, a punkt
+przyjmuje kolor przekształcenia, które go wyznaczyło. Opcjonalnie zliczamy
+trafienia w piksel i ustalamy jasność logarytmicznie:
+$\mathrm{jasność} = \ln(1 + h) / \ln(1 + h_{\max})$.
+
+\subsection{Animacja przejścia między fraktalami IFS}
+
+Niewielka zmiana współczynników przekształceń daje niewielką zmianę obrazu.
+Dlatego klatkę $k$ z $K$ w przejściu od fraktala $A$ do fraktala $B$ tworzymy,
+interpolując każdy współczynnik:
+\[
+  w_i^{(k)} = (1 - s)\, w_i^{A} + s\, w_i^{B},
+  \qquad s = t^2 (3 - 2t),\quad t = k/K .
+\]
+Funkcja $s(t)$ łagodzi początek i koniec przejścia.
+
+\begin{itemize}
+  \item \textbf{Różna liczba przekształceń.} Do zbioru z mniejszą liczbą
+        przekształceń dokładamy kopie istniejących, dzieląc prawdopodobieństwo
+        kopiowanego przekształcenia na pół. Dwie identyczne kopie dają ten sam
+        atraktor, więc pierwsza klatka się nie zmienia.
+  \item \textbf{Poprawność klatek pośrednich.} Jeśli przekształcenia $A$ i $B$
+        są zwężające, to ich kombinacja wypukła też jest zwężająca:
+        $\lVert (1-s)M_A + s M_B \rVert \le (1-s)\lVert M_A \rVert
+        + s\lVert M_B \rVert < 1$. Każda klatka jest więc poprawnym fraktalem.
+  \item \textbf{Stabilny kadr.} Prostokąt otaczający liczymy dla każdej klatki
+        i wygładzamy go średnią kroczącą, aby obraz nie ,,pływał''.
+  \item \textbf{Eksport.} Klatki liczy wątek roboczy. Każdą gotową klatkę
+        zapisuje do pliku i przekazuje do podglądu. Flaga
+        \kod{std::atomic<bool>} pozwala przerwać generowanie.
+\end{itemize}
+
+\subsection{L-systemy i grafika żółwia}
+
+L-system składa się z aksjomatu, reguł przepisywania i kąta. W każdej
+iteracji wszystkie symbole napisu zastępujemy jednocześnie według reguł.
+Długość napisu rośnie wykładniczo, więc ograniczamy ją, np.\ do 5~mln
+symboli, i ostrzegamy użytkownika.
+
+\begin{center}
+\begin{tabular}{@{}cl@{}}
+  \toprule
+  Symbol & Polecenie dla żółwia \\
+  \midrule
+  \kod{F} & idź naprzód o krok i rysuj odcinek \\
+  \kod{f} & idź naprzód o krok bez rysowania \\
+  \kod{+}, \kod{-} & obróć się w lewo lub w prawo o zadany kąt \\
+  \kod{[} & zapamiętaj pozycję i kierunek (odłóż na stos) \\
+  \kod{]} & wróć do ostatnio zapamiętanego stanu (zdejmij ze stosu) \\
+  \bottomrule
+\end{tabular}
+\end{center}
+
+Żółw przechodzi napis dwa razy. Za pierwszym razem tylko wyznacza prostokąt
+otaczający rysunek, aby dobrać skalę. Za drugim rysuje odcinki algorytmem
+Bresenhama bezpośrednio w buforze pikseli.
+
+\subsection{Fraktale IFS 3D (poszerzenie)}
+
+Przekształcenie przestrzenne ma 12 współczynników:
+$\mathbf{x}' = M\mathbf{x} + \mathbf{t}$, gdzie $M$ to macierz $3 \times 3$.
+Grę w chaos prowadzimy w przestrzeni. Każdy punkt przekształcamy do układu
+kamery i rzutujemy perspektywicznie: $x_s = f\,x_c / z_c + W/2$. Własny bufor
+głębi przechowuje dla piksela odległość najbliższego punktu, więc dalsze
+punkty nie przesłaniają bliższych. Jasność maleje z odległością od
+obserwatora.
+
+\subsection{Obliczenia wielowątkowe}
+
+Obraz dzielimy na poziome pasy, po jednym na wątek
+(\kod{std::thread::hardware\_concurrency()}). Każdy wątek zapisuje tylko swoje
+wiersze, więc nie potrzeba blokad. W grze w chaos każdy wątek ma własny
+generator liczb losowych i własny bufor trafień, które na końcu sumujemy.
+Podczas przeciągania liczymy podgląd w niższej rozdzielczości, a pełny obraz
+po puszczeniu przycisku myszy.
+
+% ---------------------------------------------------------------
+\section{Podział pracy i analiza czasowa}
+
+Dokumentację i testy prowadzimy wspólnie. Tygodnie liczymy od akceptacji
+tematu.
+
+\begin{center}
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{2.2cm}
+  >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X
+  >{\raggedright\arraybackslash}X@{}}
+  \toprule
+  Etap & Jakub Piela & Marcel Gładysz & Patryk Pilch \\
+  & \footnotesize interfejs, zbiory zespolone & \footnotesize IFS i animacja
+  & \footnotesize L-systemy \\
+  \midrule
+  \textbf{Tydz. 1--2}\newline szkielet &
+    okno, bufor pikseli, panel ImGui, nawigacja myszą, odwzorowanie piksel--płaszczyzna, Mandelbrot &
+    parser \kod{.ifs}, gra w chaos &
+    parser \kod{.lsys}, przepisywanie napisów \\
+  \textbf{Tydz. 3--4}\newline rdzeń &
+    Julia (wybór $c$ kliknięciem), płynne kolorowanie, palety &
+    wbudowane fraktale (Sierpiński, paproć), edycja współczynników, autoskalowanie, kolorowanie &
+    grafika żółwia z~rozgałęzieniami, wbudowane krzywe, dopasowanie do okna \\
+  \textbf{Tydz. 5--6}\newline komplet podstaw &
+    okna dialogowe, zapis obrazu PNG/BMP, integracja modułów &
+    animacja przejścia, eksport ponumerowanych klatek &
+    wczytywanie i~zapis definicji, okna dialogowe \\
+  \textbf{Tydz. 7--8}\newline poszerzenia &
+    wielowątkowość i~animacja w~tle z~paskiem postępu, animacja zoomu, zapis w~wysokiej rozdzielczości, testy, archiwum 7z &
+    plik scenariusza, fraktale IFS 3D &
+    kolejne zbiory zespolone (Burning Ship, Multibrot, Newton), edytor palet \\
+  \bottomrule
+\end{tabularx}
+\end{center}
+
+Wymagania podstawowe mają być gotowe po szóstym tygodniu. Ostatnie dwa
+tygodnie zostają na poszerzenia, testy i dokumentację w PDF.
+
+% ---------------------------------------------------------------
+\section{Plan testów}
+
+\begin{itemize}
+  \item \textbf{Testy modułów:} parsery na poprawnych i celowo błędnych
+        plikach (oczekiwany komunikat z numerem wiersza); znane wyniki: punkt
+        $c = 0$ należy do zbioru Mandelbrota, a $c = 1$ ucieka po 3 krokach;
+        liczba symboli \kod{F} w krzywej Kocha po $n$ iteracjach wynosi $5^n$.
+  \item \textbf{Testy powiązań:} zmiana trybu w trakcie obliczeń, zapis
+        obrazu po wczytaniu definicji, przerwanie eksportu animacji.
+  \item \textbf{Testy całościowe:} scenariusz przejścia trójkąta Sierpińskiego
+        w paproć w 100 klatkach (przykład powyżej), zmiana rozmiaru okna,
+        pomiar czasu obliczeń klatki.
+  \item \textbf{Niezmienniki:} liczba zapisanych klatek równa sumie klatek
+        przejść; obraz zbioru zespolonego nie zależy od liczby wątków.
+\end{itemize}
+
+% ---------------------------------------------------------------
+\section{Ryzyka i plan awaryjny}
+
+\begin{itemize}
+  \item \textbf{Wydajność przy dużym przybliżeniu} -- podgląd w niższej
+        rozdzielczości podczas przesuwania, pełny obraz po zatrzymaniu.
+  \item \textbf{Precyzja \kod{double}} -- wymagania podstawowe ograniczamy do
+        przybliżeń, przy których \kod{double} wystarcza; głębokie przybliżenie
+        jest poszerzeniem.
+  \item \textbf{Bardzo długie napisy L-systemów} -- limit długości
+        i ostrzeżenie zamiast zawieszenia programu.
+  \item \textbf{Zakres} -- jeśli zabraknie czasu, wymagania podstawowe
+        pozostają nietknięte, a odpadają pozycje z listy poszerzeń, od końca.
+\end{itemize}
+
+\end{document}
