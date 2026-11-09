@@ -1,0 +1,160 @@
+% Eksplorator fraktali - zarys projektu do akceptacji (wersja skrocona)
+% Kompilacja: pdflatex zarys_projektu_v3.tex (logo: plik AGH.pdf w tym samym folderze)
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage{lmodern}
+\usepackage[margin=2.2cm]{geometry}
+\usepackage{amsmath,amssymb}
+\usepackage{enumitem}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{fancyvrb}
+\usepackage[hidelinks]{hyperref}
+
+\setlist{itemsep=3pt,topsep=4pt}
+\setlength{\parskip}{5pt}
+\setlength{\parindent}{0pt}
+\setlength{\emergencystretch}{3em}
+
+\newcommand{\kod}[1]{\texttt{#1}}
+\newcommand{\naglowek}[1]{\par\bigskip{\large\bfseries\underline{#1}}\par\smallskip}
+\fvset{frame=single,fontsize=\small,framesep=6pt}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \IfFileExists{AGH.pdf}
+      {\includegraphics[width=0.3\textwidth]{AGH.pdf}}
+      {\fbox{\parbox[c][4cm][c]{0.3\textwidth}{\centering logo AGH}}}\\[1cm]
+    \textsc{\LARGE Akademia Górniczo-Hutnicza\\
+    im. Stanisława Staszica w Krakowie}\\[2cm]
+    \textsc{\Large Wydział Fizyki i Informatyki Stosowanej}\\[1cm]
+    \textsc{\large Interfejsy użytkownika i biblioteki graficzne}\\[1cm]
+    {\huge \bfseries Eksplorator fraktali}\\[0.4cm]
+    {\Large Zarys projektu do akceptacji}\\[2cm]
+    {\Large \textbf{Autorzy}}\\[0.5cm]
+    {\large Jakub Piela (kapitan)\\[2pt] Marcel Gładysz\\[2pt] Patryk Pilch}\\
+    \vfill
+    \begin{flushright}
+    \textbf{Prowadzący:} dr inż. Janusz Malinowski\\
+    \textbf{Temat:} własny\\
+    \textbf{Rok akademicki:} 2026/2027\\
+    \textbf{Data złożenia:} 02.11.2026\\
+    \end{flushright}
+\end{titlepage}
+
+% ---------------------------------------------------------------
+\naglowek{Opis projektu}
+
+Celem projektu jest napisanie programu do generowania i interaktywnego
+oglądania fraktali. Program obsługuje trzy rodziny fraktali:
+\begin{itemize}
+  \item \textbf{zbiory zespolone} -- zbiór Mandelbrota i zbiory Julii,
+  \item \textbf{fraktale IFS} -- kształty definiowane zestawem przekształceń
+        afinicznych, np.\ trójkąt Sierpińskiego i paproć Barnsleya,
+  \item \textbf{L-systemy} -- fraktale opisane regułami przepisywania napisów
+        i rysowane grafiką żółwia, np.\ krzywa Kocha i rośliny.
+\end{itemize}
+
+Użytkownik przybliża i przesuwa widok myszą, zmienia parametry i palety
+kolorów w panelu sterowania, a bieżący obraz zapisuje do pliku. Program tworzy
+także animację płynnego przejścia (,,morfingu'') jednego fraktala IFS w drugi
+i zapisuje ją na dysku jako ciąg bitmap. Ta część nawiązuje do tematu nr~25
+(,,Generowanie i animacja fraktali'').
+
+% ---------------------------------------------------------------
+\naglowek{Narzędzia}
+
+\begin{itemize}
+  \item \textbf{Język i środowisko:} C++17, Visual Studio 2026, Windows 11.
+  \item \textbf{SFML 3.1} -- okno, obsługa myszy i klawiatury, wyświetlanie
+        obrazu oraz zapis plików PNG i BMP.
+  \item \textbf{Dear ImGui} z nakładką \textbf{ImGui-SFML} -- panel sterowania,
+        menu, pola i suwaki.
+  \item \textbf{ImGuiFileDialog} -- okna wyboru plików przy wczytywaniu
+        i zapisie.
+\end{itemize}
+
+% ---------------------------------------------------------------
+\naglowek{Wymagania podstawowe}
+
+Program powinien realizować wymienione niżej zadania.
+
+\begin{itemize}
+  \item \textbf{Interfejs graficzny:} okno z obszarem fraktala, panel
+        sterowania z polami i suwakami do zmiany parametrów, menu oraz okna
+        wyboru plików. Po zmianie rozmiaru okna obraz jest przeliczany, a nie
+        rozciągany.
+  \item \textbf{Zbiór Mandelbrota:} przybliżanie kółkiem myszy w punkt pod
+        kursorem, przesuwanie przeciąganiem, powrót do widoku startowego
+        i regulowana maksymalna liczba iteracji.
+  \item \textbf{Zbiory Julii:} parametr $c$ wybierany kliknięciem na zbiorze
+        Mandelbrota albo wpisywany w panelu.
+  \item \textbf{Kolorowanie zbiorów zespolonych:} płynne przejścia kolorów
+        (bez widocznych pasów) i co najmniej trzy palety do wyboru.
+  \item \textbf{Fraktale IFS:} rysowanie metodą gry w chaos, wbudowane trójkąt
+        Sierpińskiego i paproć Barnsleya, edycja współczynników w panelu oraz
+        wczytywanie i zapis definicji w pliku tekstowym. Kolor punktu zależy od
+        przekształcenia, którym go wyznaczono. Program sam dobiera skalę tak,
+        aby fraktal mieścił się w oknie i nie był zbyt mały.
+  \item \textbf{Animacja przejścia:} płynne przejście między dwoma fraktalami
+        IFS w zadanej przez użytkownika liczbie klatek. Program pokazuje klatki
+        w trakcie generowania i zapisuje je jako ponumerowane pliki PNG lub BMP.
+  \item \textbf{L-systemy:} aksjomat, reguły, kąt i liczba iteracji ustawiane
+        w panelu lub wczytywane z pliku, rysowanie grafiką żółwia
+        z rozgałęzieniami, wbudowane krzywa Kocha, smok Heighwaya i roślina.
+        Rysunek jest dopasowywany do okna.
+  \item \textbf{Zapis obrazu:} bieżący widok do pliku PNG lub BMP.
+\end{itemize}
+
+Definicja fraktala IFS to plik tekstowy, w którym każdy wiersz opisuje jedno
+przekształcenie afiniczne
+\[
+  x' = ax + by + e, \qquad y' = cx + dy + f
+\]
+współczynnikami \kod{a b c d e f} oraz prawdopodobieństwem \kod{p}, z jakim
+przekształcenie jest losowane w grze w chaos. Przykład -- paproć Barnsleya:
+
+\begin{Verbatim}
+ 0.00  0.00  0.00  0.16  0.00  0.00  0.01
+ 0.85  0.04 -0.04  0.85  0.00  1.60  0.85
+ 0.20 -0.26  0.23  0.22  0.00  1.60  0.07
+-0.15  0.28  0.26  0.24  0.00  0.44  0.07
+\end{Verbatim}
+
+Klatki animacji przejścia od fraktala $A$ do fraktala $B$ powstają przez płynną
+zmianę każdego współczynnika:
+\[
+  w^{(t)} = (1 - t)\, w^{A} + t\, w^{B}, \qquad t \in [0, 1] .
+\]
+Gdy fraktale mają różną liczbę przekształceń, do mniejszego zestawu dokładamy
+kopie istniejących przekształceń.
+
+% ---------------------------------------------------------------
+\naglowek{Wymagania rozszerzone}
+
+W wersji rozszerzonej program dodatkowo powinien:
+
+\begin{itemize}
+  \item liczyć zbiory zespolone wielowątkowo, aby przybliżanie i przesuwanie
+        były płynne, a animację generować w tle z paskiem postępu i możliwością
+        przerwania,
+  \item tworzyć animację przez więcej niż dwa fraktale według pliku scenariusza
+        (kolejne fraktale i liczba klatek każdego przejścia),
+  \item rysować fraktale IFS trójwymiarowe z pozycją obserwatora ustawianą
+        przez użytkownika; punkty dalsze są ciemniejsze i nie przesłaniają
+        bliższych,
+  \item tworzyć animację przybliżania zbioru Mandelbrota lub Julii,
+  \item udostępniać edytor palet kolorów z zapisem i wczytywaniem palet,
+  \item obsługiwać kolejne fraktale zespolone: Burning Ship, Multibrot ($z^n$)
+        i fraktal Newtona,
+  \item zapisywać obraz w rozdzielczości większej niż okno, z wygładzaniem
+        krawędzi.
+\end{itemize}
+
+\end{document}
