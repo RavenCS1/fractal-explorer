@@ -1,0 +1,5 @@
+# Trojkat Sierpinskiego
+# a b c d e f p      x' = a x + b y + e,  y' = c x + d y + f
+0.5 0 0 0.5 0    0    0.3333
+0.5 0 0 0.5 0.5  0    0.3333
+0.5 0 0 0.5 0.25 0.5  0.3334

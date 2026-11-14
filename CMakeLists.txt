@@ -25,8 +25,25 @@ add_subdirectory(third_party/imgui-sfml EXCLUDE_FROM_ALL)
 add_subdirectory(third_party/imguifiledialog EXCLUDE_FROM_ALL)
 target_include_directories(ImGuiFileDialog PUBLIC ${IMGUI_DIR})
 
-add_executable(fractal-explorer src/main.cpp)
-target_link_libraries(fractal-explorer PRIVATE
-    SFML::Graphics
-    ImGui-SFML::ImGui-SFML
-    ImGuiFileDialog)
+
+# Wspolne ustawienia dla naszych celow (nie dla bibliotek zewnetrznych).
+function(fe_setup_target target)
+    if(MSVC)
+        # /utf-8: polskie znaki w napisach w kodzie zrodlowym
+        target_compile_options(${target} PRIVATE /W4 /utf-8 /permissive-)
+    else()
+        target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
+    endif()
+endfunction()
+
+# Kazdy modul ma wlasny CMakeLists.txt - dodajac pliki edytujesz tylko swoj.
+add_subdirectory(src/core)      # wspolne      -> fe_core
+add_subdirectory(src/complex)   # Jakub        -> fe_complex
+add_subdirectory(src/ifs)       # Marcel       -> fe_ifs
+add_subdirectory(src/lsystem)   # Patryk       -> fe_lsystem
+add_subdirectory(src/app)       # Jakub        -> fractal-explorer
+
+if(FE_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

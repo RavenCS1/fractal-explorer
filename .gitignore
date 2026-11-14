@@ -43,6 +43,9 @@ build/
 Build/
 build-*/
 
+# Visual Studio build directories
+out/
+
 # CMake generated files
 CMakeFiles/
 CMakeCache.txt
@@ -50,6 +53,10 @@ cmake_install.cmake
 Makefile
 install_manifest.txt
 compile_commands.json
+
+# Visual Studio specific CMake generated files
+CMakeSettings.json
+CMakeUserPresets.json
 
 # Temporary files
 *.tmp
@@ -69,3 +76,7 @@ Testing/
 
 # library artifacts
 imgui.ini
+
+# IDE artifacts
+.vs/
+*.user
