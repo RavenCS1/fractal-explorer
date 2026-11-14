@@ -2,7 +2,7 @@
 
 #include "core/FractalRenderer.hpp"
 
-// ZASLEPKA - wlasciciel: Patryk.
+// STUB — owner: Patryk.
 class LSystemRenderer : public FractalRenderer {
 public:
     const char* name() const override { return "L-system"; }

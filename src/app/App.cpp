@@ -36,23 +36,24 @@ void openFileDialog(const char* key, const char* title, const char* filter, bool
 
 } // namespace
 
-App::App()
-    : window_(sf::VideoMode({1280u, 800u}), "Eksplorator fraktali") {
+App::App() : window_(sf::VideoMode({1280u, 800u}), "Fractal Explorer") {
     window_.setFramerateLimit(60);
     if (!ImGui::SFML::Init(window_))
-        throw std::runtime_error("Nie udalo sie zainicjalizowac ImGui-SFML");
+        throw std::runtime_error("Failed to initialize ImGui-SFML");
     loadFonts();
 
-    // Kolejnosc = kolejnosc na liscie "Tryb" w panelu.
+    // Order here matches the "Mode" combo box in the panel.
     renderers_.push_back(std::make_unique<MandelbrotRenderer>());
     renderers_.push_back(std::make_unique<JuliaRenderer>());
     renderers_.push_back(std::make_unique<IfsRenderer>());
     renderers_.push_back(std::make_unique<LSystemRenderer>());
 }
 
-App::~App() { ImGui::SFML::Shutdown(); }
+App::~App() {
+    ImGui::SFML::Shutdown();
+}
 
-// Domyslna czcionka ImGui nie ma polskich znakow - probujemy wczytac systemowa.
+// Default ImGui font lacks extended Latin glyphs — try loading a system font.
 void App::loadFonts() {
     static const ImWchar ranges[] = {0x0020, 0x017F, 0}; // ASCII, Latin-1, Latin Extended-A (ąćęłńóśźż)
     const char* candidates[] = {
@@ -62,12 +63,13 @@ void App::loadFonts() {
         "/usr/share/fonts/dejavu/DejaVuSans.ttf",
     };
     for (const char* path : candidates) {
-        if (!std::filesystem::exists(path)) continue;
+        if (!std::filesystem::exists(path))
+            continue;
         ImGuiIO& io = ImGui::GetIO();
         io.Fonts->Clear();
         if (io.Fonts->AddFontFromFileTTF(path, 17.f, nullptr, ranges) && ImGui::SFML::UpdateFontTexture())
             return;
-        io.Fonts->Clear(); // nieudane - wracamy do domyslnej
+        io.Fonts->Clear(); // failed — fall back to default
         io.Fonts->AddFontDefault();
         (void)ImGui::SFML::UpdateFontTexture();
         return;
@@ -80,7 +82,8 @@ void App::run() {
         ImGui::SFML::Update(window_, frameClock_.restart());
 
         drawUi();
-        if (current().tick()) dirty_ = true;
+        if (current().tick())
+            dirty_ = true;
         updateImage();
 
         window_.clear(sf::Color(30, 30, 30));
@@ -95,14 +98,16 @@ void App::run() {
 }
 
 // ---------------------------------------------------------------------------
-// Zdarzenia
+// Events
 // ---------------------------------------------------------------------------
 
 bool App::insideArea(sf::Vector2i p) const {
     return p.x >= 0 && p.x < areaWidth_ && p.y >= areaTop_ && p.y < areaTop_ + areaHeight_;
 }
 
-sf::Vector2i App::toAreaPixel(sf::Vector2i p) const { return {p.x, p.y - areaTop_}; }
+sf::Vector2i App::toAreaPixel(sf::Vector2i p) const {
+    return {p.x, p.y - areaTop_};
+}
 
 void App::processEvents() {
     while (const std::optional event = window_.pollEvent()) {
@@ -113,7 +118,7 @@ void App::processEvents() {
             continue;
         }
         if (const auto* resized = event->getIf<sf::Event::Resized>()) {
-            // Bez tego SFML rozciagalby obraz; my przeliczamy go w nowym rozmiarze.
+            // Without this SFML would stretch the image; we recalculate at the new size.
             const sf::Vector2f size(resized->size);
             window_.setView(sf::View(sf::FloatRect({0.f, 0.f}, size)));
             continue;
@@ -128,7 +133,8 @@ void App::processEvents() {
                 dirty_ |= current().onZoom(factor, p.x, p.y);
             }
         } else if (const auto* pressed = event->getIf<sf::Event::MouseButtonPressed>()) {
-            if (imguiWantsMouse || !insideArea(pressed->position)) continue;
+            if (imguiWantsMouse || !insideArea(pressed->position))
+                continue;
             const sf::Vector2i p = toAreaPixel(pressed->position);
             if (pressed->button == sf::Mouse::Button::Left) {
                 dragging_ = true;
@@ -164,7 +170,7 @@ void App::processEvents() {
 }
 
 // ---------------------------------------------------------------------------
-// Obraz
+// Image
 // ---------------------------------------------------------------------------
 
 void App::updateImage() {
@@ -174,10 +180,11 @@ void App::updateImage() {
     if (image_.width() != w || image_.height() != h) {
         image_.resize(w, h);
         if (!texture_.resize({static_cast<unsigned>(w), static_cast<unsigned>(h)}))
-            throw std::runtime_error("Nie udalo sie utworzyc tekstury");
+            throw std::runtime_error("Failed to create texture");
         dirty_ = true;
     }
-    if (!dirty_) return;
+    if (!dirty_)
+        return;
 
     const auto start = std::chrono::steady_clock::now();
     current().render(image_);
@@ -188,13 +195,14 @@ void App::updateImage() {
 }
 
 void App::setMode(int index) {
-    if (index == mode_) return;
+    if (index == mode_)
+        return;
     mode_ = index;
     dirty_ = true;
 }
 
 // ---------------------------------------------------------------------------
-// Interfejs
+// UI
 // ---------------------------------------------------------------------------
 
 void App::drawUi() {
@@ -213,43 +221,47 @@ void App::drawUi() {
 }
 
 void App::drawMenuBar() {
-    if (!ImGui::BeginMainMenuBar()) return;
+    if (!ImGui::BeginMainMenuBar())
+        return;
 
-    if (ImGui::BeginMenu("Plik")) {
+    if (ImGui::BeginMenu("File")) {
         const bool hasDefs = current().fileFilter() != nullptr;
-        if (ImGui::MenuItem("Wczytaj definicję...", nullptr, false, hasDefs))
-            openFileDialog(kDlgLoadDef, "Wczytaj definicję", current().fileFilter(), false);
-        if (ImGui::MenuItem("Zapisz definicję...", nullptr, false, hasDefs))
-            openFileDialog(kDlgSaveDef, "Zapisz definicję", current().fileFilter(), true);
+        if (ImGui::MenuItem("Load definition...", nullptr, false, hasDefs))
+            openFileDialog(kDlgLoadDef, "Load definition", current().fileFilter(), false);
+        if (ImGui::MenuItem("Save definition...", nullptr, false, hasDefs))
+            openFileDialog(kDlgSaveDef, "Save definition", current().fileFilter(), true);
         ImGui::Separator();
-        if (ImGui::MenuItem("Zapisz obraz..."))
-            openFileDialog(kDlgSaveImage, "Zapisz obraz", ".png,.bmp", true);
+        if (ImGui::MenuItem("Save image..."))
+            openFileDialog(kDlgSaveImage, "Save image", ".png,.bmp", true);
         ImGui::Separator();
-        if (ImGui::MenuItem("Zakończ")) window_.close();
+        if (ImGui::MenuItem("Quit"))
+            window_.close();
         ImGui::EndMenu();
     }
-    if (ImGui::BeginMenu("Widok")) {
-        if (ImGui::MenuItem("Widok startowy")) {
+    if (ImGui::BeginMenu("View")) {
+        if (ImGui::MenuItem("Reset view")) {
             current().resetView();
             dirty_ = true;
         }
         ImGui::EndMenu();
     }
-    if (ImGui::BeginMenu("Pomoc")) {
-        if (ImGui::MenuItem("O programie")) showAbout_ = true;
+    if (ImGui::BeginMenu("Help")) {
+        if (ImGui::MenuItem("About"))
+            showAbout_ = true;
         ImGui::EndMenu();
     }
     ImGui::EndMainMenuBar();
 
     if (showAbout_) {
-        ImGui::OpenPopup("O programie");
+        ImGui::OpenPopup("About");
         showAbout_ = false;
     }
-    if (ImGui::BeginPopupModal("O programie", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
-        ImGui::Text("Eksplorator fraktali");
-        ImGui::Text("Jakub Piela, Marcel Gładysz, Patryk Pilch");
-        ImGui::Text("Interfejsy użytkownika i biblioteki graficzne, AGH WFiIS");
-        if (ImGui::Button("OK")) ImGui::CloseCurrentPopup();
+    if (ImGui::BeginPopupModal("About", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+        ImGui::Text("Fractal Explorer");
+        ImGui::Text("Jakub Piela, Marcel Gladysz, Patryk Pilch");
+        ImGui::Text("User Interfaces and Graphics Libraries, AGH WFiIS");
+        if (ImGui::Button("OK"))
+            ImGui::CloseCurrentPopup();
         ImGui::EndPopup();
     }
 }
@@ -261,24 +273,26 @@ void App::drawPanel() {
     const ImGuiWindowFlags flags =
         ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar;
 
-    if (ImGui::Begin("Panel sterowania", nullptr, flags)) {
+    if (ImGui::Begin("Control panel", nullptr, flags)) {
         int mode = mode_;
-        if (ImGui::BeginCombo("Tryb", current().name())) {
+        if (ImGui::BeginCombo("Mode", current().name())) {
             for (int i = 0; i < static_cast<int>(renderers_.size()); ++i) {
-                if (ImGui::Selectable(renderers_[static_cast<std::size_t>(i)]->name(), i == mode_)) mode = i;
+                if (ImGui::Selectable(renderers_[static_cast<std::size_t>(i)]->name(), i == mode_))
+                    mode = i;
             }
             ImGui::EndCombo();
         }
         setMode(mode);
 
         ImGui::Separator();
-        ImGui::PushID(mode_); // osobne ID widzetow dla kazdego trybu
-        if (current().drawControls()) dirty_ = true;
+        ImGui::PushID(mode_); // separate widget IDs per mode
+        if (current().drawControls())
+            dirty_ = true;
         ImGui::PopID();
 
         ImGui::Separator();
-        if (ImGui::Button("Zapisz obraz"))
-            openFileDialog(kDlgSaveImage, "Zapisz obraz", ".png,.bmp", true);
+        if (ImGui::Button("Save image"))
+            openFileDialog(kDlgSaveImage, "Save image", ".png,.bmp", true);
     }
     ImGui::End();
 }
@@ -302,7 +316,7 @@ void App::drawStatusBar() {
                 ImGui::SameLine(0.f, 24.f);
             }
         }
-        ImGui::Text("czas obliczeń: %.0f ms", lastRenderMs_);
+        ImGui::Text("render time: %.0f ms", lastRenderMs_);
     }
     ImGui::End();
     ImGui::PopStyleVar();
@@ -328,7 +342,7 @@ void App::drawFileDialogs() {
             try {
                 current().loadDefinition(dlg->GetFilePathName());
                 dirty_ = true;
-            } catch (const std::exception& e) { // ParseError dziedziczy po std::runtime_error
+            } catch (const std::exception& e) {
                 errorMessage_ = e.what();
             }
         }
@@ -347,10 +361,10 @@ void App::drawFileDialogs() {
 }
 
 void App::drawErrorPopup() {
-    if (!errorMessage_.empty() && !ImGui::IsPopupOpen("Błąd"))
-        ImGui::OpenPopup("Błąd");
+    if (!errorMessage_.empty() && !ImGui::IsPopupOpen("Error"))
+        ImGui::OpenPopup("Error");
 
-    if (ImGui::BeginPopupModal("Błąd", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
+    if (ImGui::BeginPopupModal("Error", nullptr, ImGuiWindowFlags_AlwaysAutoResize)) {
         ImGui::TextUnformatted(errorMessage_.c_str());
         if (ImGui::Button("OK")) {
             errorMessage_.clear();

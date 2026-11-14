@@ -1,6 +1,6 @@
 #pragma once
 
-// Minimalne narzedzia do testow - bez zewnetrznych bibliotek.
+// Minimal test utilities — no external libraries.
 
 #include <cmath>
 #include <iostream>
@@ -10,27 +10,27 @@ inline int& testFailures() {
     return failures;
 }
 
-#define CHECK(cond)                                                                        \
-    do {                                                                                   \
-        if (!(cond)) {                                                                     \
-            std::cerr << __FILE__ << ":" << __LINE__ << ": CHECK nie spelniony: " #cond "\n"; \
-            ++testFailures();                                                              \
-        }                                                                                  \
+#define CHECK(cond)                                                                                                    \
+    do {                                                                                                               \
+        if (!(cond)) {                                                                                                 \
+            std::cerr << __FILE__ << ":" << __LINE__ << ": CHECK failed: " #cond "\n";                                 \
+            ++testFailures();                                                                                          \
+        }                                                                                                              \
     } while (0)
 
 #define CHECK_NEAR(a, b, eps) CHECK(std::abs((a) - (b)) <= (eps))
 
-// Sprawdza, ze wyrazenie rzuca ParseError z podanym numerem wiersza.
-#define CHECK_PARSE_ERROR_LINE(expr, expectedLine)                                         \
-    do {                                                                                   \
-        bool thrown_ = false;                                                              \
-        try {                                                                              \
-            expr;                                                                          \
-        } catch (const ParseError& e_) {                                                   \
-            thrown_ = true;                                                                \
-            CHECK(e_.line() == (expectedLine));                                            \
-        }                                                                                  \
-        CHECK(thrown_);                                                                    \
+// Checks that the expression throws ParseError with the given line number.
+#define CHECK_PARSE_ERROR_LINE(expr, expectedLine)                                                                     \
+    do {                                                                                                               \
+        bool thrown_ = false;                                                                                          \
+        try {                                                                                                          \
+            expr;                                                                                                      \
+        } catch (const ParseError& e_) {                                                                               \
+            thrown_ = true;                                                                                            \
+            CHECK(e_.line() == (expectedLine));                                                                        \
+        }                                                                                                              \
+        CHECK(thrown_);                                                                                                \
     } while (0)
 
 inline int testResult() {
@@ -38,6 +38,6 @@ inline int testResult() {
         std::cout << "OK\n";
         return 0;
     }
-    std::cerr << testFailures() << " blad(y)\n";
+    std::cerr << testFailures() << " failure(s)\n";
     return 1;
 }

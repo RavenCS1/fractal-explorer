@@ -6,41 +6,41 @@
 #include <string>
 #include <vector>
 
-// Wspolny czytnik plikow tekstowych dla wszystkich parserow.
-//  - pomija puste wiersze i komentarze (od '#' do konca wiersza),
-//  - pamieta numer biezacego wiersza, zeby bledy mialy numer wiersza,
-//  - liczby moga byc rozdzielone spacjami, tabulatorami lub przecinkami.
+// Shared text-file reader for all parsers.
+//  - skips blank lines and comments (from '#' to end of line),
+//  - tracks the current line number so errors carry a line number,
+//  - numbers may be separated by spaces, tabs, or commas.
 //
-// Przyklad:
+// Example:
 //     LineReader in = LineReader::fromFile(path);
-//     if (!in.next()) in.fail("Brak liczby przeksztalcen");
+//     if (!in.next()) in.fail("Missing number of transforms");
 //     int n = in.integer();
 //     for (int i = 0; i < n; ++i) {
-//         if (!in.next()) in.fail("Za malo przeksztalcen");
+//         if (!in.next()) in.fail("Too few transforms");
 //         std::vector<double> v = in.numbers(7);   // a b c d e f p
 //     }
 class LineReader {
 public:
-    // Rzuca ParseError(0, ...), gdy pliku nie da sie otworzyc.
+    // Throws ParseError(0, ...) when the file cannot be opened.
     static LineReader fromFile(const std::string& path);
-    // Do testow: tresc pliku podana wprost.
+    // For tests: file contents provided directly.
     static LineReader fromString(std::string text);
 
-    // Przechodzi do nastepnego niepustego wiersza. Zwraca false na koncu pliku.
+    // Advances to the next non-empty line. Returns false at end of file.
     bool next();
 
-    // Biezacy wiersz bez komentarza i bez bialych znakow na brzegach.
+    // Current line with comment and surrounding whitespace stripped.
     const std::string& line() const { return line_; }
     int lineNumber() const { return lineNumber_; }
 
-    // Wszystkie liczby z biezacego wiersza.
+    // All numbers from the current line.
     std::vector<double> numbers() const;
-    // Dokladnie 'expected' liczb, inaczej ParseError z numerem wiersza.
+    // Exactly 'expected' numbers, otherwise ParseError with line number.
     std::vector<double> numbers(std::size_t expected) const;
-    // Jedna liczba calkowita w wierszu.
+    // A single integer on the line.
     int integer() const;
 
-    // Rzuca ParseError z numerem biezacego wiersza (0, gdy nic jeszcze nie wczytano).
+    // Throws ParseError with the current line number (0 if nothing has been read yet).
     [[noreturn]] void fail(const std::string& message) const;
 
 private:

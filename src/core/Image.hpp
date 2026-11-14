@@ -5,15 +5,15 @@
 #include <cstdint>
 #include <vector>
 
-// Bufor pikseli, do ktorego rysuja wszystkie renderery.
-// Nie zalezy od SFML - mozna go uzywac w testach bez okna.
-// Uklad: wiersz po wierszu, (0,0) to lewy gorny rog.
+// Pixel buffer that all renderers draw into.
+// Independent of SFML — can be used in headless tests.
+// Layout: row by row, (0,0) is the top-left corner.
 class Image {
 public:
     Image() = default;
     Image(int width, int height, Color fill = Color(0, 0, 0));
 
-    // Zmienia rozmiar; dotychczasowa zawartosc jest tracona.
+    // Resizes the image; existing contents are discarded.
     void resize(int width, int height, Color fill = Color(0, 0, 0));
     void fill(Color c);
 
@@ -22,19 +22,20 @@ public:
     bool empty() const { return pixels_.empty(); }
     bool inside(int x, int y) const { return x >= 0 && y >= 0 && x < width_ && y < height_; }
 
-    // Bezpieczne: piksele poza obrazem sa ignorowane.
+    // Safe: pixels outside the image are ignored.
     void set(int x, int y, Color c) {
-        if (inside(x, y)) pixels_[static_cast<std::size_t>(y) * width_ + x] = c;
+        if (inside(x, y))
+            pixels_[static_cast<std::size_t>(y) * width_ + x] = c;
     }
-    // Poza obrazem zwraca czarny.
+    // Returns black for pixels outside the image.
     Color get(int x, int y) const {
         return inside(x, y) ? pixels_[static_cast<std::size_t>(y) * width_ + x] : Color(0, 0, 0);
     }
 
-    // Odcinek algorytmem Bresenhama, oba konce wlacznie; fragmenty poza obrazem sa pomijane.
+    // Bresenham line, both endpoints inclusive; segments outside the image are clipped.
     void drawLine(int x0, int y0, int x1, int y1, Color c);
 
-    // Bezposredni dostep - do szybkich petli i do przekazania do SFML.
+    // Direct access — for tight loops and passing to SFML.
     Color* pixels() { return pixels_.data(); }
     const Color* pixels() const { return pixels_.data(); }
     const std::uint8_t* bytes() const { return reinterpret_cast<const std::uint8_t*>(pixels_.data()); }

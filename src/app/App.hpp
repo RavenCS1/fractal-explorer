@@ -12,8 +12,8 @@
 #include <string>
 #include <vector>
 
-// Okno, petla zdarzen, panel ImGui i laczenie modulow.
-// Wlasciciel: Jakub. Pozostali dodaja tylko swoj renderer w konstruktorze App.
+// Window, event loop, ImGui panel, and module wiring.
+// Owner: Jakub. Others only add their renderer in the App constructor.
 class App {
 public:
     App();
@@ -47,21 +47,21 @@ private:
 
     Image image_;
     sf::Texture texture_;
-    bool dirty_ = true;          // trzeba wywolac render()
+    bool dirty_ = true; // need to call render()
     double lastRenderMs_ = 0.0;
 
-    // Obszar fraktala w oknie (liczony co klatke w drawUi()).
+    // Fractal area in the window (computed each frame in drawUi()).
     int areaTop_ = 0;
     int areaWidth_ = 1;
     int areaHeight_ = 1;
 
-    // Mysz
+    // Mouse
     bool dragging_ = false;
     int dragDistance_ = 0;
     sf::Vector2i lastMouse_{0, 0};
-    sf::Vector2i cursor_{-1, -1}; // pozycja w oknie
+    sf::Vector2i cursor_{-1, -1}; // position in window
 
-    std::string errorMessage_;   // niepusty = pokaz okno bledu
+    std::string errorMessage_; // non-empty = show error popup
     bool showAbout_ = false;
 
     static constexpr float kPanelWidth = 340.f;

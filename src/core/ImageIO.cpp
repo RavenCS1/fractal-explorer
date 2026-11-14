@@ -6,11 +6,10 @@
 
 void saveImage(const Image& image, const std::string& path) {
     if (image.empty())
-        throw std::runtime_error("Brak obrazu do zapisania");
+        throw std::runtime_error("No image to save");
 
-    const sf::Image out(sf::Vector2u(static_cast<unsigned>(image.width()),
-                                     static_cast<unsigned>(image.height())),
+    const sf::Image out(sf::Vector2u(static_cast<unsigned>(image.width()), static_cast<unsigned>(image.height())),
                         image.bytes());
     if (!out.saveToFile(path))
-        throw std::runtime_error("Nie udalo sie zapisac pliku: " + path);
+        throw std::runtime_error("Failed to save file: " + path);
 }

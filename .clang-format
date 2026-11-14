@@ -1,0 +1,39 @@
+BasedOnStyle: LLVM
+
+Language: Cpp
+Standard: c++17
+
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 120
+
+AccessModifierOffset: -4
+
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Empty
+
+BreakBeforeBraces: Attach
+
+IncludeBlocks: Regroup
+IncludeCategories:
+  # Project headers (quoted includes)
+  - Regex:    '^"'
+    Priority: 1
+  # SFML / ImGui / third-party
+  - Regex:    '^<(SFML|imgui|ImGui|imconfig)'
+    Priority: 2
+  # Standard library
+  - Regex:    '^<'
+    Priority: 3
+SortIncludes: CaseSensitive
+
+PointerAlignment: Left
+ReferenceAlignment: Left
+SpaceAfterCStyleCast: false
+SpaceBeforeParens: ControlStatements
+SpacesInAngles: Never
+
+FixNamespaceComments: true

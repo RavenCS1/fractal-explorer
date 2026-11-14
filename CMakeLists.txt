@@ -26,18 +26,18 @@ add_subdirectory(third_party/imguifiledialog EXCLUDE_FROM_ALL)
 target_include_directories(ImGuiFileDialog PUBLIC ${IMGUI_DIR})
 
 
-# Wspolne ustawienia dla naszych celow (nie dla bibliotek zewnetrznych).
+# Shared settings for our targets (not for external libraries).
 function(fe_setup_target target)
     if(MSVC)
-        # /utf-8: polskie znaki w napisach w kodzie zrodlowym
+        # /utf-8: support Unicode characters in source code string literals
         target_compile_options(${target} PRIVATE /W4 /utf-8 /permissive-)
     else()
         target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
     endif()
 endfunction()
 
-# Kazdy modul ma wlasny CMakeLists.txt - dodajac pliki edytujesz tylko swoj.
-add_subdirectory(src/core)      # wspolne      -> fe_core
+# Each module has its own CMakeLists.txt — when adding files you only edit yours.
+add_subdirectory(src/core)      # shared       -> fe_core
 add_subdirectory(src/complex)   # Jakub        -> fe_complex
 add_subdirectory(src/ifs)       # Marcel       -> fe_ifs
 add_subdirectory(src/lsystem)   # Patryk       -> fe_lsystem

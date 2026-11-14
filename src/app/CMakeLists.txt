@@ -12,5 +12,5 @@ target_link_libraries(fractal-explorer PRIVATE
     ImGuiFileDialog)
 fe_setup_target(fractal-explorer)
 
-# Program wynikowy w build/bin (na Windowsie: build/bin/Release itd.)
+# Output binary in build/bin (on Windows: build/bin/Release etc.)
 set_target_properties(fractal-explorer PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)

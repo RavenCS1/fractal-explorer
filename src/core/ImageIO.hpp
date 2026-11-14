@@ -4,6 +4,6 @@
 
 #include <string>
 
-// Zapisuje obraz do pliku; format wynika z rozszerzenia (.png albo .bmp).
-// Rzuca std::runtime_error, gdy zapis sie nie powiedzie.
+// Saves the image to a file; format is determined by extension (.png or .bmp).
+// Throws std::runtime_error on failure.
 void saveImage(const Image& image, const std::string& path);

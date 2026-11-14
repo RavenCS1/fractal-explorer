@@ -8,7 +8,7 @@ int main() {
         App app;
         app.run();
     } catch (const std::exception& e) {
-        std::cerr << "Blad krytyczny: " << e.what() << '\n';
+        std::cerr << "Fatal error: " << e.what() << '\n';
         return 1;
     }
     return 0;

@@ -3,7 +3,9 @@
 #include <algorithm>
 #include <cstdlib>
 
-Image::Image(int width, int height, Color fill) { resize(width, height, fill); }
+Image::Image(int width, int height, Color fill) {
+    resize(width, height, fill);
+}
 
 void Image::resize(int width, int height, Color fill) {
     width_ = std::max(0, width);
@@ -11,7 +13,9 @@ void Image::resize(int width, int height, Color fill) {
     pixels_.assign(static_cast<std::size_t>(width_) * height_, fill);
 }
 
-void Image::fill(Color c) { std::fill(pixels_.begin(), pixels_.end(), c); }
+void Image::fill(Color c) {
+    std::fill(pixels_.begin(), pixels_.end(), c);
+}
 
 void Image::drawLine(int x0, int y0, int x1, int y1, Color c) {
     const int dx = std::abs(x1 - x0);
@@ -22,9 +26,16 @@ void Image::drawLine(int x0, int y0, int x1, int y1, Color c) {
 
     while (true) {
         set(x0, y0, c);
-        if (x0 == x1 && y0 == y1) break;
+        if (x0 == x1 && y0 == y1)
+            break;
         const int e2 = 2 * err;
-        if (e2 >= dy) { err += dy; x0 += sx; }
-        if (e2 <= dx) { err += dx; y0 += sy; }
+        if (e2 >= dy) {
+            err += dy;
+            x0 += sx;
+        }
+        if (e2 <= dx) {
+            err += dx;
+            y0 += sy;
+        }
     }
 }

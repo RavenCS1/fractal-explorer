@@ -2,7 +2,7 @@
 
 #include "core/FractalRenderer.hpp"
 
-// ZASLEPKA - wlasciciel: Jakub.
+// STUB — owner: Jakub.
 class MandelbrotRenderer : public FractalRenderer {
 public:
     const char* name() const override { return "Mandelbrot"; }

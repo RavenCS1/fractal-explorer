@@ -3,7 +3,7 @@ add_library(fe_core STATIC
     ImageIO.cpp
     LineReader.cpp
 )
-# Naglowki wlaczamy jako "core/Image.hpp", "ifs/IfsRenderer.hpp" itd.
+# Headers are included as "core/Image.hpp", "ifs/IfsRenderer.hpp" etc.
 target_include_directories(fe_core PUBLIC ${PROJECT_SOURCE_DIR}/src)
-target_link_libraries(fe_core PRIVATE SFML::Graphics)   # tylko ImageIO.cpp
+target_link_libraries(fe_core PRIVATE SFML::Graphics)   # only ImageIO.cpp
 fe_setup_target(fe_core)
