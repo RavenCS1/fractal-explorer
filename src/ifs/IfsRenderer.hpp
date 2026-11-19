@@ -3,6 +3,7 @@
 #include "ifs/AffineTransform.hpp"
 #include "core/FractalRenderer.hpp"
 #include <vector>
+#include <random>
 
 class IfsRenderer : public FractalRenderer {
 public:
@@ -16,4 +17,6 @@ public:
 
 private:
 	std::vector<AffineTransform> transforms_;
+	static constexpr int rngSeed = 4;
+	std::mt19937 rng_{rngSeed}; // replace seed later
 };
