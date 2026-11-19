@@ -3,6 +3,9 @@
 #include <imgui.h>
 #include <stdexcept>
 #include <utility>
+#include <fstream>
+#include <iomanip>
+#include <limits>
 
 void IfsRenderer::render(Image& image) {
     // TODO: chaos game, color by transform, automatic scale fitting.
@@ -49,6 +52,27 @@ void IfsRenderer::loadDefinition(const std::string& path) {
 }
 
 void IfsRenderer::saveDefinition(const std::string& path) const {
-    (void)path;
-    throw std::runtime_error("Saving .ifs is not implemented yet");
+	if (transforms_.empty()) {
+		throw std::runtime_error("No IFS definition to save");
+	}
+
+	std::ofstream out(path);
+	if (!out) {
+		throw std::runtime_error("Cannot open file for writing: " + path);
+	}
+
+	out << std::setprecision(std::numeric_limits<double>::max_digits10);
+	for (const auto& transform : transforms_) {
+		out << transform.a << ' '
+			<< transform.b << ' '
+			<< transform.c << ' '
+			<< transform.d << ' '
+			<< transform.e << ' '
+			<< transform.f << ' '
+			<< transform.p << '\n';
+	}
+	out.close();
+	if (!out) {
+		throw std::runtime_error("Failed to write definition: " + path);
+	}
 }
