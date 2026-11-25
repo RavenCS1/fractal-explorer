@@ -1,4 +1,4 @@
-#include "LSystem.hpp"
+#include "lsystem/LSystem.hpp"
 
 #include "core/LineReader.hpp"
 #include "core/ParseError.hpp"
