@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <map>
 #include <string>
 
@@ -7,6 +8,16 @@ class LineReader;
 
 struct LSystem {
     static constexpr int kMaxIterations = 15;
+
+    static constexpr std::size_t kMaxLength = 5'000'000;
+
+    struct Expansion {
+        std::string text;
+        int iterationsDone = 0;
+        bool limitReached = false;
+    };
+
+    Expansion expand(std::size_t maxLength = kMaxLength) const;
 
     std::string axiom;
     std::map<char, std::string> rules;

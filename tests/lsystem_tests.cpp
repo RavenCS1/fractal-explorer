@@ -2,6 +2,8 @@
 #include "core/LineReader.hpp"
 #include "lsystem/LSystem.hpp"
 
+#include <algorithm>
+#include <cstddef>
 #include <string>
 
 static LSystem parseText(const std::string& text) {
@@ -124,6 +126,104 @@ static void testMissingSections() {
     CHECK_PARSE_ERROR_LINE(parseText("axiom F\nangle 90\n"), 0);                // no iterations
 }
 
+// --- expand() ---
+
+static LSystem makeKoch(int iterations) {
+    LSystem s;
+    s.axiom = "F";
+    s.rules['F'] = "F+F-F-F+F";
+    s.iterations = iterations;
+    return s;
+}
+
+static std::size_t pow5(int n) {
+    std::size_t r = 1;
+    for (int i = 0; i < n; ++i)
+        r *= 5;
+    return r;
+}
+
+static void testExpandKochSmall() {
+    const LSystem::Expansion e0 = makeKoch(0).expand();
+    CHECK(e0.text == "F");
+    CHECK(e0.iterationsDone == 0);
+    CHECK(!e0.limitReached);
+
+    const LSystem::Expansion e1 = makeKoch(1).expand();
+    CHECK(e1.text == "F+F-F-F+F");
+    CHECK(e1.iterationsDone == 1);
+    CHECK(!e1.limitReached);
+}
+
+static void testExpandKochGrowth() {
+    // Each F becomes 5 F's and 4 signs: F count = 5^n, length = 2 * 5^n - 1.
+    for (int n = 0; n <= 6; ++n) {
+        const LSystem::Expansion e = makeKoch(n).expand();
+        const auto fCount = static_cast<std::size_t>(std::count(e.text.begin(), e.text.end(), 'F'));
+        CHECK(fCount == pow5(n));
+        CHECK(e.text.size() == 2 * pow5(n) - 1);
+        CHECK(e.iterationsDone == n);
+    }
+}
+
+static void testExpandIsSimultaneous() {
+    LSystem s;
+    s.axiom = "AB";
+    s.rules['A'] = "B";
+    s.rules['B'] = "A";
+    s.iterations = 1;
+    CHECK(s.expand().text == "BA"); // not "AA" or "BB"
+}
+
+static void testExpandAlgaeFibonacci() {
+    LSystem s;
+    s.axiom = "A";
+    s.rules['A'] = "AB";
+    s.rules['B'] = "A";
+    const std::size_t expected[] = {1, 2, 3, 5, 8, 13};
+    for (int n = 0; n < 6; ++n) {
+        s.iterations = n;
+        CHECK(s.expand().text.size() == expected[n]);
+    }
+    s.iterations = 4;
+    CHECK(s.expand().text == "ABAABABA");
+}
+
+static void testExpandEmptyRuleAndNoRules() {
+    LSystem s;
+    s.axiom = "FXF";
+    s.rules['X'] = ""; // X disappears
+    s.iterations = 1;
+    CHECK(s.expand().text == "FF");
+
+    LSystem t;
+    t.axiom = "F+[F]-f";
+    t.iterations = 3; // no rules: unchanged
+    const LSystem::Expansion e = t.expand();
+    CHECK(e.text == "F+[F]-f");
+    CHECK(e.iterationsDone == 3);
+    CHECK(!e.limitReached);
+}
+
+static void testExpandStopsAtLimit() {
+    // Default limit 5M: iteration 10 would be ~19.5M, so stop after 9 (2 * 5^9 - 1 = 3'906'249).
+    const LSystem::Expansion e = makeKoch(10).expand();
+    CHECK(e.limitReached);
+    CHECK(e.iterationsDone == 9);
+    CHECK(e.text.size() == 2 * pow5(9) - 1);
+
+    // Small limit: lengths 1, 9, 49, 249 -> 249 > 100, so stop after 2 iterations.
+    const LSystem::Expansion small = makeKoch(5).expand(100);
+    CHECK(small.limitReached);
+    CHECK(small.iterationsDone == 2);
+    CHECK(small.text.size() == 49);
+
+    // Exactly at the limit is still allowed.
+    const LSystem::Expansion exact = makeKoch(2).expand(49);
+    CHECK(!exact.limitReached);
+    CHECK(exact.iterationsDone == 2);
+}
+
 int main() {
     testParseKoch();
     testParseCommentsBlankLinesAndOrder();
@@ -135,5 +235,11 @@ int main() {
     testErrorsInKeywords();
     testErrorLineCountsCommentsAndBlankLines();
     testMissingSections();
+    testExpandKochSmall();
+    testExpandKochGrowth();
+    testExpandIsSimultaneous();
+    testExpandAlgaeFibonacci();
+    testExpandEmptyRuleAndNoRules();
+    testExpandStopsAtLimit();
     return testResult();
 }

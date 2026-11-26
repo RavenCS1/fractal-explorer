@@ -113,3 +113,38 @@ LSystem LSystem::parse(LineReader& in) {
         throw ParseError(0, "Missing 'iterations'");
     return result;
 }
+
+LSystem::Expansion LSystem::expand(std::size_t maxLength) const {
+    Expansion result;
+    std::string cur = axiom;
+
+    for (int i = 0; i < iterations; i++) {
+        std::size_t nextLen = 0;
+
+        for (char c : cur) {
+            auto it = rules.find(c);
+            nextLen += (it != rules.end()) ? it->second.size() : 1;
+        }
+
+        if (nextLen > maxLength) {
+            result.limitReached = true;
+            break;
+        }
+
+        std::string next;
+        next.reserve(nextLen);
+
+        for (char c : cur) {
+            auto it = rules.find(c);
+            if (it != rules.end())
+                next += it->second;
+            else
+                next += c;
+        }
+        cur = std::move(next);
+        ++result.iterationsDone;
+    }
+
+    result.text = std::move(cur);
+    return result;
+}
