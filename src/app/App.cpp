@@ -15,11 +15,13 @@
 #include <imgui.h>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <stdexcept>
+#include <utility>
 
 namespace {
 
@@ -34,6 +36,31 @@ void openFileDialog(const char* key, const char* title, const char* filter, bool
     ImGuiFileDialog::Instance()->OpenDialog(key, title, filter, config);
 }
 
+// Default ImGui font lacks extended Latin glyphs — try loading a system font.
+void loadFonts() {
+    // ASCII, Latin-1, Latin Extended-A (ąćęłńóśźż); ImGui keeps a pointer to this, so it must be static.
+    static constexpr std::array<ImWchar, 3> kGlyphRanges = {0x0020, 0x017F, 0};
+    constexpr std::array<const char*, 4> kCandidates = {
+        "C:/Windows/Fonts/segoeui.ttf",
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/TTF/DejaVuSans.ttf",
+        "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+    };
+    for (const char* path : kCandidates) {
+        if (!std::filesystem::exists(path))
+            continue;
+        const ImGuiIO& io = ImGui::GetIO();
+        io.Fonts->Clear();
+        if (io.Fonts->AddFontFromFileTTF(path, 17.f, nullptr, kGlyphRanges.data()) != nullptr &&
+            ImGui::SFML::UpdateFontTexture())
+            return;
+        io.Fonts->Clear(); // failed — fall back to default
+        io.Fonts->AddFontDefault();
+        (void)ImGui::SFML::UpdateFontTexture();
+        return;
+    }
+}
+
 } // namespace
 
 App::App() : window_(sf::VideoMode({1280u, 800u}), "Fractal Explorer") {
@@ -43,37 +70,23 @@ App::App() : window_(sf::VideoMode({1280u, 800u}), "Fractal Explorer") {
     loadFonts();
 
     // Order here matches the "Mode" combo box in the panel.
-    renderers_.push_back(std::make_unique<MandelbrotRenderer>());
-    renderers_.push_back(std::make_unique<JuliaRenderer>());
+    auto mandelbrot = std::make_unique<MandelbrotRenderer>();
+    auto julia = std::make_unique<JuliaRenderer>();
+    // Right click on the Mandelbrot set -> show the Julia set for the clicked c.
+    // Capturing `this` is safe: App owns the renderers and cannot be copied or moved.
+    const int juliaIndex = 1;
+    mandelbrot->onPickC = [this, juliaPtr = julia.get(), juliaIndex](double re, double im) {
+        juliaPtr->setC(re, im);
+        setMode(juliaIndex);
+    };
+    renderers_.push_back(std::move(mandelbrot));
+    renderers_.push_back(std::move(julia));
     renderers_.push_back(std::make_unique<IfsRenderer>());
     renderers_.push_back(std::make_unique<LSystemRenderer>());
 }
 
 App::~App() {
     ImGui::SFML::Shutdown();
-}
-
-// Default ImGui font lacks extended Latin glyphs — try loading a system font.
-void App::loadFonts() {
-    static const ImWchar ranges[] = {0x0020, 0x017F, 0}; // ASCII, Latin-1, Latin Extended-A (ąćęłńóśźż)
-    const char* candidates[] = {
-        "C:/Windows/Fonts/segoeui.ttf",
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/TTF/DejaVuSans.ttf",
-        "/usr/share/fonts/dejavu/DejaVuSans.ttf",
-    };
-    for (const char* path : candidates) {
-        if (!std::filesystem::exists(path))
-            continue;
-        ImGuiIO& io = ImGui::GetIO();
-        io.Fonts->Clear();
-        if (io.Fonts->AddFontFromFileTTF(path, 17.f, nullptr, ranges) && ImGui::SFML::UpdateFontTexture())
-            return;
-        io.Fonts->Clear(); // failed — fall back to default
-        io.Fonts->AddFontDefault();
-        (void)ImGui::SFML::UpdateFontTexture();
-        return;
-    }
 }
 
 void App::run() {
@@ -101,12 +114,13 @@ void App::run() {
 // Events
 // ---------------------------------------------------------------------------
 
-bool App::insideArea(sf::Vector2i p) const {
-    return p.x >= 0 && p.x < areaWidth_ && p.y >= areaTop_ && p.y < areaTop_ + areaHeight_;
+bool App::insideArea(sf::Vector2i windowPos) const {
+    return windowPos.x >= 0 && windowPos.x < areaWidth_ && windowPos.y >= areaTop_ &&
+           windowPos.y < areaTop_ + areaHeight_;
 }
 
-sf::Vector2i App::toAreaPixel(sf::Vector2i p) const {
-    return {p.x, p.y - areaTop_};
+sf::Vector2i App::toAreaPixel(sf::Vector2i windowPos) const {
+    return {windowPos.x, windowPos.y - areaTop_};
 }
 
 void App::processEvents() {
@@ -115,57 +129,116 @@ void App::processEvents() {
 
         if (event->is<sf::Event::Closed>()) {
             window_.close();
-            continue;
-        }
-        if (const auto* resized = event->getIf<sf::Event::Resized>()) {
+        } else if (const auto* resized = event->getIf<sf::Event::Resized>()) {
             // Without this SFML would stretch the image; we recalculate at the new size.
             const sf::Vector2f size(resized->size);
             window_.setView(sf::View(sf::FloatRect({0.f, 0.f}, size)));
-            continue;
-        }
-
-        const bool imguiWantsMouse = ImGui::GetIO().WantCaptureMouse;
-
-        if (const auto* wheel = event->getIf<sf::Event::MouseWheelScrolled>()) {
-            if (!imguiWantsMouse && insideArea(wheel->position)) {
-                const sf::Vector2i p = toAreaPixel(wheel->position);
-                const double factor = std::pow(1.25, static_cast<double>(wheel->delta));
-                dirty_ |= current().onZoom(factor, p.x, p.y);
-            }
+        } else if (const auto* wheel = event->getIf<sf::Event::MouseWheelScrolled>()) {
+            onMouseWheel(*wheel);
         } else if (const auto* pressed = event->getIf<sf::Event::MouseButtonPressed>()) {
-            if (imguiWantsMouse || !insideArea(pressed->position))
-                continue;
-            const sf::Vector2i p = toAreaPixel(pressed->position);
-            if (pressed->button == sf::Mouse::Button::Left) {
-                dragging_ = true;
-                dragDistance_ = 0;
-                lastMouse_ = pressed->position;
-            } else if (pressed->button == sf::Mouse::Button::Right) {
-                dirty_ |= current().onClick(MouseButton::Right, p.x, p.y);
-            } else if (pressed->button == sf::Mouse::Button::Middle) {
-                dirty_ |= current().onClick(MouseButton::Middle, p.x, p.y);
-            }
+            onMousePressed(*pressed);
         } else if (const auto* moved = event->getIf<sf::Event::MouseMoved>()) {
-            cursor_ = moved->position;
-            if (dragging_) {
-                const sf::Vector2i d = moved->position - lastMouse_;
-                if (d.x != 0 || d.y != 0) {
-                    dirty_ |= current().onDrag(d.x, d.y);
-                    dragDistance_ += std::abs(d.x) + std::abs(d.y);
-                    lastMouse_ = moved->position;
-                }
-            }
+            onMouseMoved(*moved);
         } else if (const auto* released = event->getIf<sf::Event::MouseButtonReleased>()) {
-            if (released->button == sf::Mouse::Button::Left && dragging_) {
-                dragging_ = false;
-                if (dragDistance_ < 3 && insideArea(released->position)) {
-                    const sf::Vector2i p = toAreaPixel(released->position);
-                    dirty_ |= current().onClick(MouseButton::Left, p.x, p.y);
-                }
-            }
+            onMouseReleased(*released);
+        } else if (const auto* key = event->getIf<sf::Event::KeyPressed>()) {
+            onKeyPressed(*key);
         } else if (event->is<sf::Event::MouseLeft>()) {
             cursor_ = {-1, -1};
         }
+    }
+}
+
+void App::onMouseWheel(const sf::Event::MouseWheelScrolled& wheel) {
+    if (ImGui::GetIO().WantCaptureMouse || !insideArea(wheel.position))
+        return;
+    const sf::Vector2i p = toAreaPixel(wheel.position);
+    const double factor = std::pow(1.25, static_cast<double>(wheel.delta));
+    dirty_ |= current().onZoom(factor, p.x, p.y);
+}
+
+void App::onMousePressed(const sf::Event::MouseButtonPressed& pressed) {
+    if (ImGui::GetIO().WantCaptureMouse || !insideArea(pressed.position))
+        return;
+    const sf::Vector2i p = toAreaPixel(pressed.position);
+    switch (pressed.button) {
+    case sf::Mouse::Button::Left:
+        // A left click is only reported on release, if the mouse barely moved (see onMouseReleased).
+        dragging_ = true;
+        dragDistance_ = 0;
+        lastMouse_ = pressed.position;
+        break;
+    case sf::Mouse::Button::Right:
+        dirty_ |= current().onClick(MouseButton::Right, p.x, p.y);
+        break;
+    case sf::Mouse::Button::Middle:
+        dirty_ |= current().onClick(MouseButton::Middle, p.x, p.y);
+        break;
+    default:
+        break;
+    }
+}
+
+void App::onMouseMoved(const sf::Event::MouseMoved& moved) {
+    cursor_ = moved.position;
+    if (!dragging_)
+        return;
+    const sf::Vector2i d = moved.position - lastMouse_;
+    if (d.x == 0 && d.y == 0)
+        return;
+    dirty_ |= current().onDrag(d.x, d.y);
+    dragDistance_ += std::abs(d.x) + std::abs(d.y);
+    lastMouse_ = moved.position;
+}
+
+void App::onMouseReleased(const sf::Event::MouseButtonReleased& released) {
+    if (released.button != sf::Mouse::Button::Left || !dragging_)
+        return;
+    dragging_ = false;
+    if (dragDistance_ < kClickMaxDistance && insideArea(released.position)) {
+        const sf::Vector2i p = toAreaPixel(released.position);
+        dirty_ |= current().onClick(MouseButton::Left, p.x, p.y);
+    }
+}
+
+// Keyboard navigation (for laptops without a mouse):
+//   + / -  zoom in / out at the center of the fractal area
+//   arrows move the view, R or Home resets it
+void App::onKeyPressed(const sf::Event::KeyPressed& key) {
+    if (ImGui::GetIO().WantCaptureKeyboard) // typing into a panel field
+        return;
+    const int cx = areaWidth_ / 2;
+    const int cy = areaHeight_ / 2;
+    using K = sf::Keyboard::Key;
+    switch (key.code) {
+    case K::Add:
+    case K::Equal: // the '+' key without Shift on most layouts
+        dirty_ |= current().onZoom(kKeyZoomFactor, cx, cy);
+        break;
+    case K::Subtract:
+    case K::Hyphen:
+        dirty_ |= current().onZoom(1.0 / kKeyZoomFactor, cx, cy);
+        break;
+    // Arrow = move the *view* that way, i.e. drag the image the opposite way.
+    case K::Left:
+        dirty_ |= current().onDrag(kKeyPanPixels, 0);
+        break;
+    case K::Right:
+        dirty_ |= current().onDrag(-kKeyPanPixels, 0);
+        break;
+    case K::Up:
+        dirty_ |= current().onDrag(0, kKeyPanPixels);
+        break;
+    case K::Down:
+        dirty_ |= current().onDrag(0, -kKeyPanPixels);
+        break;
+    case K::R:
+    case K::Home:
+        current().resetView();
+        dirty_ = true;
+        break;
+    default:
+        break;
     }
 }
 
@@ -211,7 +284,7 @@ void App::drawUi() {
 
     areaTop_ = static_cast<int>(barHeight);
     areaWidth_ = std::max(1, static_cast<int>(static_cast<float>(win.x) - kPanelWidth));
-    areaHeight_ = std::max(1, static_cast<int>(static_cast<float>(win.y) - 2.f * barHeight));
+    areaHeight_ = std::max(1, static_cast<int>(static_cast<float>(win.y) - (2.f * barHeight)));
 
     drawMenuBar();
     drawPanel();
