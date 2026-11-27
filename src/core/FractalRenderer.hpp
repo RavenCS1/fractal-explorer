@@ -1,84 +1,115 @@
 #pragma once
 
+/**
+ * @file
+ * The interface every fractal mode implements.
+ */
+
 #include "core/Image.hpp"
 
 #include <string>
 
+/// Mouse button reported to FractalRenderer::onClick().
 enum class MouseButton { Left, Right, Middle };
 
-// Common interface for all fractal types.
-// The application holds a list of renderers and always talks to the active one through these methods.
-//
-// RULES:
-//  1. render() only computes and draws to Image. No ImGui or SFML inside.
-//  2. drawControls() only draws widgets and changes parameters. No computation.
-//  3. Methods returning bool return true when the image needs to be recalculated;
-//     the application then calls render().
-//  4. Pixel coordinates (px, py) are relative to the top-left corner
-//     of the fractal area, not the entire window.
+/**
+ * Common interface for all fractal types.
+ *
+ * The application holds a list of renderers and always talks to the active one through these methods.
+ *
+ * Rules:
+ *  1. render() only computes and draws to Image. No ImGui or SFML inside.
+ *  2. drawControls() only draws widgets and changes parameters. No computation.
+ *  3. Methods returning `bool` return true when the image needs to be recalculated;
+ *     the application then calls render().
+ *  4. Pixel coordinates (px, py) are relative to the top-left corner
+ *     of the fractal area, not the entire window.
+ */
 class FractalRenderer {
 public:
     FractalRenderer() = default;
     virtual ~FractalRenderer() = default;
 
-    // Mode name in the selection list, e.g. "Mandelbrot".
+    /// Mode name in the selection list, e.g. "Mandelbrot".
     [[nodiscard]] virtual const char* name() const = 0;
 
-    // Renders the full image. Image size = fractal area size;
-    // on window resize the application passes an image of the new size.
+    /**
+     * Renders the full image. Image size = fractal area size;
+     * on window resize the application passes an image of the new size.
+     */
     virtual void render(Image& image) = 0;
 
-    // ImGui widgets in the control panel (parameters, palettes, buttons).
-    // Called once per frame, inside the panel window.
+    /**
+     * ImGui widgets in the control panel (parameters, palettes, buttons).
+     * Called once per frame, inside the panel window.
+     * @return true when a parameter changed and the image must be recalculated.
+     */
     virtual bool drawControls() = 0;
 
-    // Called once per frame of the main loop. For work spread across multiple frames,
-    // e.g. animation generation: one animation frame per call.
+    /**
+     * Called once per frame of the main loop. For work spread across multiple frames,
+     * e.g. animation generation: one animation frame per call.
+     * @return true when the image must be recalculated.
+     */
     virtual bool tick() { return false; }
 
-    // --- Navigation (no-op by default) -------------------------------------
-    // factor > 1 zooms in, factor < 1 zooms out; (px, py) is the point under the cursor.
+    /// @name Navigation (no-op by default)
+    /// @{
+
+    /**
+     * Mouse wheel zoom.
+     * @param factor > 1 zooms in, < 1 zooms out.
+     * @param px,py  The point under the cursor (should stay in place).
+     * @return true when the image must be recalculated.
+     */
     virtual bool onZoom(double factor, int px, int py) {
         (void)factor;
         (void)px;
         (void)py;
         return false;
     }
-    // Mouse drag by (dx, dy) pixels with the left button held.
+    /// Mouse drag by (@p dx, @p dy) pixels with the left button held. @return true to re-render.
     virtual bool onDrag(int dx, int dy) {
         (void)dx;
         (void)dy;
         return false;
     }
-    // Click without dragging.
+    /// Click without dragging at pixel (@p px, @p py). @return true to re-render.
     virtual bool onClick(MouseButton button, int px, int py) {
         (void)button;
         (void)px;
         (void)py;
         return false;
     }
-    // Return to the initial view (View menu).
+    /// Return to the initial view (View menu).
     virtual void resetView() {}
 
-    // Status bar text for the pixel under the cursor, e.g. "x = -0.7436, y = 0.1318".
+    /// Status bar text for the pixel under the cursor, e.g. "x = -0.7436, y = 0.1318".
     [[nodiscard]] virtual std::string statusText(int px, int py) const {
         (void)px;
         (void)py;
         return {};
     }
+    /// @}
 
-    // --- Definition files ----------------------------------------------------
-    // Filter for the file dialog, e.g. ".ifs". nullptr = this mode has no definition files.
+    /// @name Definition files
+    /// @{
+
+    /// Filter for the file dialog, e.g. ".ifs". nullptr = this mode has no definition files.
     [[nodiscard]] virtual const char* fileFilter() const { return nullptr; }
-    // Throws ParseError (with line number) or std::runtime_error.
+    /// Loads a definition file. @throws ParseError (with line number) or std::runtime_error.
     virtual void loadDefinition(const std::string& path) { (void)path; }
-    // Throws std::runtime_error on write failure.
+    /// Saves the current definition. @throws std::runtime_error on write failure.
     virtual void saveDefinition(const std::string& path) const { (void)path; }
+    /// @}
 
 protected:
-    // Copying through a base reference would slice the object, so copy/move are only for derived classes.
+    /// @name Copy/move
+    /// Copying through a base reference would slice the object, so copy/move are only for derived classes.
+    /// @{
     FractalRenderer(const FractalRenderer&) = default;
     FractalRenderer& operator=(const FractalRenderer&) = default;
     FractalRenderer(FractalRenderer&&) = default;
     FractalRenderer& operator=(FractalRenderer&&) = default;
+    /// @}
 };
