@@ -1,5 +1,6 @@
 #include "app/App.hpp"
 
+#include <cstdlib>
 #include <exception>
 #include <iostream>
 
@@ -9,7 +10,7 @@ int main() {
         app.run();
     } catch (const std::exception& e) {
         std::cerr << "Fatal error: " << e.what() << '\n';
-        return 1;
+        return EXIT_FAILURE;
     }
-    return 0;
+    return EXIT_SUCCESS;
 }
