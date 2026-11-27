@@ -43,6 +43,16 @@ add_subdirectory(src/ifs)       # Marcel       -> fe_ifs
 add_subdirectory(src/lsystem)   # Patryk       -> fe_lsystem
 add_subdirectory(src/app)       # Jakub        -> fractal-explorer
 
+# API documentation: cmake --build build --target docs  ->  build-docs/html/index.html
+find_package(Doxygen QUIET)
+if(DOXYGEN_FOUND)
+    add_custom_target(docs
+        COMMAND Doxygen::doxygen ${PROJECT_SOURCE_DIR}/Doxyfile
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
+        COMMENT "Generating API documentation with Doxygen"
+        VERBATIM)
+endif()
+
 if(FE_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)

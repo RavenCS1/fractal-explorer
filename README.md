@@ -86,6 +86,19 @@ Headers from `third_party/` are automatically ignored via `HeaderFilterRegex` in
 > find src -name '*.cpp' | xargs clang-tidy -p build --extra-arg=-Isrc
 > ```
 
+## API documentation (Doxygen)
+
+Install Doxygen (`sudo apt install doxygen`), then from the repository root:
+
+```bash
+doxygen                              # or: cmake --build build --target docs
+xdg-open build-docs/html/index.html  # Windows: start build-docs\html\index.html
+```
+
+Document headers with Doxygen comments: `/** ... */` above a class or function (the first sentence is the
+brief description), `///` for one-liners, `///<` after a member. Useful commands: `@param`, `@return`,
+`@throws`, `@code ... @endcode`, `@todo`. Every header starts with a `/** @file ... */` block.
+
 ## Rules
 
 1. **`FractalRenderer` is the contract.** The application only knows this interface. You implement your mode by overriding its methods, starting from a stub in your directory.

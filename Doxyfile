@@ -1,0 +1,36 @@
+# Doxygen configuration — only settings that differ from the defaults.
+# Generate:  doxygen            (from the repository root)
+#      or:   cmake --build build --target docs
+# Output:    build-docs/html/index.html
+
+PROJECT_NAME           = "Fractal Explorer"
+PROJECT_BRIEF          = "Interactive fractal explorer: Mandelbrot, Julia, IFS, L-systems"
+OUTPUT_DIRECTORY       = build-docs
+
+INPUT                  = README.md src
+RECURSIVE              = YES
+FILE_PATTERNS          = *.hpp *.cpp *.md
+USE_MDFILE_AS_MAINPAGE = README.md
+STRIP_FROM_PATH        = src
+STRIP_FROM_INC_PATH    = src
+
+# First sentence of a /** */ or /// comment is the brief description.
+JAVADOC_AUTOBRIEF      = YES
+QT_AUTOBRIEF           = YES
+# Document everything, also items without a comment, so the class/file lists are complete.
+EXTRACT_ALL            = YES
+EXTRACT_STATIC         = YES
+EXTRACT_ANON_NSPACES   = YES
+SOURCE_BROWSER         = YES
+BUILTIN_STL_SUPPORT    = YES
+SORT_MEMBER_DOCS       = NO
+
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+GENERATE_TREEVIEW      = YES
+HAVE_DOT               = NO
+CLASS_GRAPH            = YES
+
+WARN_IF_UNDOCUMENTED   = NO
+WARN_NO_PARAMDOC       = NO
+QUIET                  = YES
