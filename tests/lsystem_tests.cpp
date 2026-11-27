@@ -3,29 +3,33 @@
 #include "lsystem/LSystem.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <string>
 
-static LSystem parseText(const std::string& text) {
+namespace {
+
+LSystem parseText(const std::string& text) {
     LineReader in = LineReader::fromString(text);
     return LSystem::parse(in);
 }
 
 // --- valid files ---
 
-static void testParseKoch() {
+void testParseKoch() {
     const LSystem s = parseText("axiom F\n"
                                 "rule F=F+F-F-F+F\n"
                                 "angle 90\n"
                                 "iterations 4\n");
     CHECK(s.axiom == "F");
     CHECK(s.rules.size() == 1);
-    CHECK(s.rules.count('F') == 1 && s.rules.at('F') == "F+F-F-F+F");
+    CHECK(s.rules.count('F') == 1);
+    CHECK(s.rules.at('F') == "F+F-F-F+F");
     CHECK_NEAR(s.angle, 90.0, 1e-12);
     CHECK(s.iterations == 4);
 }
 
-static void testParseCommentsBlankLinesAndOrder() {
+void testParseCommentsBlankLinesAndOrder() {
     const LSystem s = parseText("# Koch curve\n"
                                 "\n"
                                 "iterations 3   # keywords in any order\n"
@@ -39,7 +43,7 @@ static void testParseCommentsBlankLinesAndOrder() {
     CHECK(s.iterations == 3);
 }
 
-static void testParseSpacesAndTabs() {
+void testParseSpacesAndTabs() {
     const LSystem s = parseText("axiom\tF + F\n"
                                 "rule F = F + F - F\n"
                                 "angle   +22.5\n"
@@ -50,7 +54,7 @@ static void testParseSpacesAndTabs() {
     CHECK(s.iterations == 2);
 }
 
-static void testParseSeveralRules() {
+void testParseSeveralRules() {
     // Heighway dragon
     const LSystem s = parseText("axiom FX\n"
                                 "rule X=X+YF+\n"
@@ -63,7 +67,7 @@ static void testParseSeveralRules() {
     CHECK(s.rules.at('Y') == "-FX-Y");
 }
 
-static void testParseEdgeValues() {
+void testParseEdgeValues() {
     const LSystem s = parseText("axiom X\n"
                                 "rule X=\n" // empty right side: "delete X"
                                 "angle -60\n"
@@ -80,14 +84,14 @@ static void testParseEdgeValues() {
 
 // --- errors with a line number ---
 
-static void testErrorsInRules() {
+void testErrorsInRules() {
     CHECK_PARSE_ERROR_LINE(parseText("axiom F\nrule F\nangle 90\niterations 2\n"), 2);    // missing '='
     CHECK_PARSE_ERROR_LINE(parseText("axiom F\nrule FF=F\nangle 90\niterations 2\n"), 2); // two symbols on the left
     CHECK_PARSE_ERROR_LINE(parseText("axiom F\nrule =F\nangle 90\niterations 2\n"), 2);   // no symbol on the left
     CHECK_PARSE_ERROR_LINE(parseText("axiom F\nrule F=F\nrule F=FF\nangle 90\niterations 2\n"), 3); // duplicate rule
 }
 
-static void testErrorsInNumbers() {
+void testErrorsInNumbers() {
     CHECK_PARSE_ERROR_LINE(parseText("axiom F\nangle abc\niterations 2\n"), 2);
     CHECK_PARSE_ERROR_LINE(parseText("axiom F\nangle 90deg\niterations 2\n"), 2);
     CHECK_PARSE_ERROR_LINE(parseText("axiom F\nangle inf\niterations 2\n"), 2);
@@ -97,7 +101,7 @@ static void testErrorsInNumbers() {
     CHECK_PARSE_ERROR_LINE(parseText("axiom F\nangle 90\niterations 16\n"), 3);
 }
 
-static void testErrorsInKeywords() {
+void testErrorsInKeywords() {
     CHECK_PARSE_ERROR_LINE(parseText("axiom F\nfoo 3\n"), 2);                                // unknown keyword
     CHECK_PARSE_ERROR_LINE(parseText("Axiom F\nangle 90\niterations 2\n"), 1);               // lowercase only
     CHECK_PARSE_ERROR_LINE(parseText("axiom\nangle 90\niterations 2\n"), 1);                 // empty axiom
@@ -106,7 +110,7 @@ static void testErrorsInKeywords() {
     CHECK_PARSE_ERROR_LINE(parseText("axiom F\niterations 2\nangle 90\niterations 3\n"), 4); // duplicate iterations
 }
 
-static void testErrorLineCountsCommentsAndBlankLines() {
+void testErrorLineCountsCommentsAndBlankLines() {
     CHECK_PARSE_ERROR_LINE(parseText("# header\n"
                                      "\n"
                                      "axiom F\n"
@@ -118,7 +122,7 @@ static void testErrorLineCountsCommentsAndBlankLines() {
 
 // --- file-level errors (line 0) ---
 
-static void testMissingSections() {
+void testMissingSections() {
     CHECK_PARSE_ERROR_LINE(parseText(""), 0);
     CHECK_PARSE_ERROR_LINE(parseText("# only a comment\n"), 0);
     CHECK_PARSE_ERROR_LINE(parseText("rule F=F\nangle 90\niterations 2\n"), 0); // no axiom
@@ -128,7 +132,7 @@ static void testMissingSections() {
 
 // --- expand() ---
 
-static LSystem makeKoch(int iterations) {
+LSystem makeKoch(int iterations) {
     LSystem s;
     s.axiom = "F";
     s.rules['F'] = "F+F-F-F+F";
@@ -136,14 +140,14 @@ static LSystem makeKoch(int iterations) {
     return s;
 }
 
-static std::size_t pow5(int n) {
+std::size_t pow5(int n) {
     std::size_t r = 1;
     for (int i = 0; i < n; ++i)
         r *= 5;
     return r;
 }
 
-static void testExpandKochSmall() {
+void testExpandKochSmall() {
     const LSystem::Expansion e0 = makeKoch(0).expand();
     CHECK(e0.text == "F");
     CHECK(e0.iterationsDone == 0);
@@ -155,18 +159,18 @@ static void testExpandKochSmall() {
     CHECK(!e1.limitReached);
 }
 
-static void testExpandKochGrowth() {
+void testExpandKochGrowth() {
     // Each F becomes 5 F's and 4 signs: F count = 5^n, length = 2 * 5^n - 1.
     for (int n = 0; n <= 6; ++n) {
         const LSystem::Expansion e = makeKoch(n).expand();
         const auto fCount = static_cast<std::size_t>(std::count(e.text.begin(), e.text.end(), 'F'));
         CHECK(fCount == pow5(n));
-        CHECK(e.text.size() == 2 * pow5(n) - 1);
+        CHECK(e.text.size() == (2 * pow5(n)) - 1);
         CHECK(e.iterationsDone == n);
     }
 }
 
-static void testExpandIsSimultaneous() {
+void testExpandIsSimultaneous() {
     LSystem s;
     s.axiom = "AB";
     s.rules['A'] = "B";
@@ -175,21 +179,21 @@ static void testExpandIsSimultaneous() {
     CHECK(s.expand().text == "BA"); // not "AA" or "BB"
 }
 
-static void testExpandAlgaeFibonacci() {
+void testExpandAlgaeFibonacci() {
     LSystem s;
     s.axiom = "A";
     s.rules['A'] = "AB";
     s.rules['B'] = "A";
-    const std::size_t expected[] = {1, 2, 3, 5, 8, 13};
+    const std::array<std::size_t, 6> expected = {1, 2, 3, 5, 8, 13};
     for (int n = 0; n < 6; ++n) {
         s.iterations = n;
-        CHECK(s.expand().text.size() == expected[n]);
+        CHECK(s.expand().text.size() == expected.at(static_cast<std::size_t>(n)));
     }
     s.iterations = 4;
     CHECK(s.expand().text == "ABAABABA");
 }
 
-static void testExpandEmptyRuleAndNoRules() {
+void testExpandEmptyRuleAndNoRules() {
     LSystem s;
     s.axiom = "FXF";
     s.rules['X'] = ""; // X disappears
@@ -205,12 +209,12 @@ static void testExpandEmptyRuleAndNoRules() {
     CHECK(!e.limitReached);
 }
 
-static void testExpandStopsAtLimit() {
+void testExpandStopsAtLimit() {
     // Default limit 5M: iteration 10 would be ~19.5M, so stop after 9 (2 * 5^9 - 1 = 3'906'249).
     const LSystem::Expansion e = makeKoch(10).expand();
     CHECK(e.limitReached);
     CHECK(e.iterationsDone == 9);
-    CHECK(e.text.size() == 2 * pow5(9) - 1);
+    CHECK(e.text.size() == (2 * pow5(9)) - 1);
 
     // Small limit: lengths 1, 9, 49, 249 -> 249 > 100, so stop after 2 iterations.
     const LSystem::Expansion small = makeKoch(5).expand(100);
@@ -223,6 +227,8 @@ static void testExpandStopsAtLimit() {
     CHECK(!exact.limitReached);
     CHECK(exact.iterationsDone == 2);
 }
+
+} // namespace
 
 int main() {
     testParseKoch();

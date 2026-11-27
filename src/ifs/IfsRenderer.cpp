@@ -15,14 +15,14 @@
 
 namespace {
 
-constexpr Color coral(255, 110, 110);
-constexpr Color green(100, 220, 140);
-constexpr Color blue(100, 170, 255);
-constexpr Color gold(255, 210, 100);
-constexpr Color violet(190, 130, 255);
-constexpr Color cyan(100, 220, 220);
+constexpr Color kCoral(255, 110, 110);
+constexpr Color kGreen(100, 220, 140);
+constexpr Color kBlue(100, 170, 255);
+constexpr Color kGold(255, 210, 100);
+constexpr Color kViolet(190, 130, 255);
+constexpr Color kCyan(100, 220, 220);
 
-constexpr std::array<Color, 6> transformColors{{coral, green, blue, gold, violet, cyan}};
+constexpr std::array<Color, 6> kTransformColors{{kCoral, kGreen, kBlue, kGold, kViolet, kCyan}};
 
 } // namespace
 
@@ -47,8 +47,8 @@ void IfsRenderer::render(Image& image) {
     // chaos game
     std::discrete_distribution<std::size_t> chooseTransform(weights.begin(), weights.end());
     Point point{};
-    constexpr int burnIn{20};
-    for (int i = 0; i < burnIn; ++i) {
+    constexpr int kBurnIn{20};
+    for (int i = 0; i < kBurnIn; ++i) {
         const auto index = chooseTransform(rng_);
         point = transforms_[index].apply(point);
         if (!std::isfinite(point.x) || !std::isfinite(point.y)) {
@@ -59,8 +59,8 @@ void IfsRenderer::render(Image& image) {
     double maxX = point.x;
     double minY = point.y;
     double maxY = point.y;
-    constexpr int boundsSamples{5000};
-    for (int i = 0; i < boundsSamples; ++i) {
+    constexpr int kBoundsSamples{5000};
+    for (int i = 0; i < kBoundsSamples; ++i) {
         const auto index = chooseTransform(rng_);
         point = transforms_[index].apply(point);
         if (!std::isfinite(point.x) || !std::isfinite(point.y)) {
@@ -81,15 +81,15 @@ void IfsRenderer::render(Image& image) {
     const double centerY = minY + (spanY / 2.0);
 
     // avoid division by zero
-    constexpr double minimumSpan = 1e-12;
-    const double scaleX = (image.width() - 1) / std::max(spanX, minimumSpan);
-    const double scaleY = (image.height() - 1) / std::max(spanY, minimumSpan);
+    constexpr double kMinimumSpan = 1e-12;
+    const double scaleX = (image.width() - 1) / std::max(spanX, kMinimumSpan);
+    const double scaleY = (image.height() - 1) / std::max(spanY, kMinimumSpan);
     const double scale = 0.9 * std::min(scaleX, scaleY);
     const double pixelCenterX = (image.width() - 1) / 2.0;
     const double pixelCenterY = (image.height() - 1) / 2.0;
 
-    constexpr int pointCount{100000};
-    for (int i = 0; i < pointCount; ++i) {
+    constexpr int kPointCount{100000};
+    for (int i = 0; i < kPointCount; ++i) {
         const auto index = chooseTransform(rng_);
         point = transforms_[index].apply(point);
         if (!std::isfinite(point.x) || !std::isfinite(point.y)) {
@@ -102,7 +102,7 @@ void IfsRenderer::render(Image& image) {
         if (std::isfinite(px) && std::isfinite(py) && px >= 0.0 && py >= 0.0 && px <= image.width() - 1 &&
             py <= image.height() - 1) {
             image.set(static_cast<int>(std::lround(px)), static_cast<int>(std::lround(py)),
-                      transformColors[index % transformColors.size()]);
+                      kTransformColors[index % kTransformColors.size()]);
         }
     }
 }

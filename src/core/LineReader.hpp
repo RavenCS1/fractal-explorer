@@ -30,15 +30,15 @@ public:
     bool next();
 
     // Current line with comment and surrounding whitespace stripped.
-    const std::string& line() const { return line_; }
-    int lineNumber() const { return lineNumber_; }
+    [[nodiscard]] const std::string& line() const { return line_; }
+    [[nodiscard]] int lineNumber() const { return lineNumber_; }
 
     // All numbers from the current line.
-    std::vector<double> numbers() const;
+    [[nodiscard]] std::vector<double> numbers() const;
     // Exactly 'expected' numbers, otherwise ParseError with line number.
-    std::vector<double> numbers(std::size_t expected) const;
+    [[nodiscard]] std::vector<double> numbers(std::size_t expected) const;
     // A single integer on the line.
-    int integer() const;
+    [[nodiscard]] int integer() const;
 
     // Throws ParseError with the current line number (0 if nothing has been read yet).
     [[noreturn]] void fail(const std::string& message) const;

@@ -17,19 +17,19 @@ public:
     void resize(int width, int height, Color fill = Color(0, 0, 0));
     void fill(Color c);
 
-    int width() const { return width_; }
-    int height() const { return height_; }
-    bool empty() const { return pixels_.empty(); }
-    bool inside(int x, int y) const { return x >= 0 && y >= 0 && x < width_ && y < height_; }
+    [[nodiscard]] int width() const { return width_; }
+    [[nodiscard]] int height() const { return height_; }
+    [[nodiscard]] bool empty() const { return pixels_.empty(); }
+    [[nodiscard]] bool inside(int x, int y) const { return x >= 0 && y >= 0 && x < width_ && y < height_; }
 
     // Safe: pixels outside the image are ignored.
     void set(int x, int y, Color c) {
         if (inside(x, y))
-            pixels_[static_cast<std::size_t>(y) * width_ + x] = c;
+            pixels_[(static_cast<std::size_t>(y) * width_) + x] = c;
     }
     // Returns black for pixels outside the image.
-    Color get(int x, int y) const {
-        return inside(x, y) ? pixels_[static_cast<std::size_t>(y) * width_ + x] : Color(0, 0, 0);
+    [[nodiscard]] Color get(int x, int y) const {
+        return inside(x, y) ? pixels_[(static_cast<std::size_t>(y) * width_) + x] : Color(0, 0, 0);
     }
 
     // Bresenham line, both endpoints inclusive; segments outside the image are clipped.
@@ -37,8 +37,11 @@ public:
 
     // Direct access — for tight loops and passing to SFML.
     Color* pixels() { return pixels_.data(); }
-    const Color* pixels() const { return pixels_.data(); }
-    const std::uint8_t* bytes() const { return reinterpret_cast<const std::uint8_t*>(pixels_.data()); }
+    [[nodiscard]] const Color* pixels() const { return pixels_.data(); }
+    [[nodiscard]] const std::uint8_t* bytes() const {
+        // Color is exactly 4 x uint8_t (static_assert in Color.hpp), so this byte view is well-defined.
+        return reinterpret_cast<const std::uint8_t*>(pixels_.data()); // NOLINT(*-reinterpret-cast)
+    }
 
 private:
     int width_ = 0;

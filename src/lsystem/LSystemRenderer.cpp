@@ -20,7 +20,7 @@ bool LSystemRenderer::drawControls() {
 
 void LSystemRenderer::loadDefinition(const std::string& path) {
     // TODO: parser — lines "axiom ...", "rule X=...", "angle ...", "iterations ..." (in.line()).
-    LineReader in = LineReader::fromFile(path);
+    const LineReader in = LineReader::fromFile(path);
     (void)in;
     throw ParseError(0, "Loading .lsys is not implemented yet");
 }

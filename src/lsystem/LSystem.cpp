@@ -23,7 +23,7 @@ std::string trim(const std::string& s) {
 
 std::string removeSpaces(const std::string& s) {
     std::string out;
-    for (char c : s)
+    for (const char c : s)
         if (!isSpace(c))
             out += c;
     return out;
@@ -66,7 +66,7 @@ LSystem LSystem::parse(LineReader& in) {
     while (in.next()) {
         const std::string& line = in.line(); // e.g. "rule F=F+F-F-F+F"
         const std::size_t space = line.find_first_of(" \t");
-        std::string key = line.substr(0, space);                                              // "rule"
+        const std::string key = line.substr(0, space);                                        // "rule"
         std::string value = (space == std::string::npos) ? "" : trim(line.substr(space + 1)); // "F=F+F-F-F+F"
 
         if (key == "axiom") {
@@ -78,7 +78,7 @@ LSystem LSystem::parse(LineReader& in) {
             result.axiom = value;
             hasAxiom = true;
         } else if (key == "rule") {
-            std::size_t eq = value.find('=');
+            const std::size_t eq = value.find('=');
             if (eq == std::string::npos)
                 in.fail("Expected rule in form X=...");
             std::string lhs = trim(value.substr(0, eq));          // "F"
@@ -95,7 +95,7 @@ LSystem LSystem::parse(LineReader& in) {
         } else if (key == "iterations") {
             if (hasIterations)
                 in.fail("Duplicate 'iterations'");
-            int n = parseInteger(in, value);
+            const int n = parseInteger(in, value);
             if (n < 0 || n > kMaxIterations)
                 in.fail("Iterations must be between 0 and " + std::to_string(kMaxIterations));
             result.iterations = n;
@@ -121,8 +121,8 @@ LSystem::Expansion LSystem::expand(std::size_t maxLength) const {
     for (int i = 0; i < iterations; i++) {
         std::size_t nextLen = 0;
 
-        for (char c : cur) {
-            auto it = rules.find(c);
+        for (const char c : cur) {
+            const auto it = rules.find(c);
             nextLen += (it != rules.end()) ? it->second.size() : 1;
         }
 
@@ -134,8 +134,8 @@ LSystem::Expansion LSystem::expand(std::size_t maxLength) const {
         std::string next;
         next.reserve(nextLen);
 
-        for (char c : cur) {
-            auto it = rules.find(c);
+        for (const char c : cur) {
+            const auto it = rules.find(c);
             if (it != rules.end())
                 next += it->second;
             else

@@ -18,6 +18,6 @@ public:
 
 private:
     std::vector<AffineTransform> transforms_;
-    static constexpr int rngSeed = 4;
-    std::mt19937 rng_{rngSeed}; // replace seed later
+    static constexpr int kRngSeed = 4;
+    std::mt19937 rng_{kRngSeed}; // replace seed later
 };

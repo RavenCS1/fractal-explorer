@@ -32,6 +32,7 @@ SortIncludes: CaseSensitive
 
 PointerAlignment: Left
 ReferenceAlignment: Left
+QualifierAlignment: Left
 SpaceAfterCStyleCast: false
 SpaceBeforeParens: ControlStatements
 SpacesInAngles: Never

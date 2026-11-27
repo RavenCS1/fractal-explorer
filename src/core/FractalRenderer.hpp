@@ -18,10 +18,11 @@ enum class MouseButton { Left, Right, Middle };
 //     of the fractal area, not the entire window.
 class FractalRenderer {
 public:
+    FractalRenderer() = default;
     virtual ~FractalRenderer() = default;
 
     // Mode name in the selection list, e.g. "Mandelbrot".
-    virtual const char* name() const = 0;
+    [[nodiscard]] virtual const char* name() const = 0;
 
     // Renders the full image. Image size = fractal area size;
     // on window resize the application passes an image of the new size.
@@ -60,7 +61,7 @@ public:
     virtual void resetView() {}
 
     // Status bar text for the pixel under the cursor, e.g. "x = -0.7436, y = 0.1318".
-    virtual std::string statusText(int px, int py) const {
+    [[nodiscard]] virtual std::string statusText(int px, int py) const {
         (void)px;
         (void)py;
         return {};
@@ -68,9 +69,16 @@ public:
 
     // --- Definition files ----------------------------------------------------
     // Filter for the file dialog, e.g. ".ifs". nullptr = this mode has no definition files.
-    virtual const char* fileFilter() const { return nullptr; }
+    [[nodiscard]] virtual const char* fileFilter() const { return nullptr; }
     // Throws ParseError (with line number) or std::runtime_error.
     virtual void loadDefinition(const std::string& path) { (void)path; }
     // Throws std::runtime_error on write failure.
     virtual void saveDefinition(const std::string& path) const { (void)path; }
+
+protected:
+    // Copying through a base reference would slice the object, so copy/move are only for derived classes.
+    FractalRenderer(const FractalRenderer&) = default;
+    FractalRenderer& operator=(const FractalRenderer&) = default;
+    FractalRenderer(FractalRenderer&&) = default;
+    FractalRenderer& operator=(FractalRenderer&&) = default;
 };

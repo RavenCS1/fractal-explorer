@@ -17,7 +17,7 @@ struct LSystem {
         bool limitReached = false;
     };
 
-    Expansion expand(std::size_t maxLength = kMaxLength) const;
+    [[nodiscard]] Expansion expand(std::size_t maxLength = kMaxLength) const;
 
     std::string axiom;
     std::map<char, std::string> rules;
@@ -25,7 +25,7 @@ struct LSystem {
     int iterations = 4;
 
     static LSystem parse(LineReader& in);
-    std::string toText() const;
+    [[nodiscard]] std::string toText() const;
 
     bool operator==(const LSystem& other) const {
         return axiom == other.axiom && rules == other.rules && angle == other.angle && iterations == other.iterations;

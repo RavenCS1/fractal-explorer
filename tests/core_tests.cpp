@@ -2,7 +2,11 @@
 #include "core/Image.hpp"
 #include "core/LineReader.hpp"
 
-static void testLineReaderSkipsCommentsAndCountsLines() {
+#include <cstddef>
+
+namespace {
+
+void testLineReaderSkipsCommentsAndCountsLines() {
     LineReader in = LineReader::fromString("# comment\n"
                                            "\n"
                                            "3   # number of transforms\n"
@@ -26,7 +30,7 @@ static void testLineReaderSkipsCommentsAndCountsLines() {
     CHECK(!in.next());
 }
 
-static void testLineReaderErrorsHaveLineNumbers() {
+void testLineReaderErrorsHaveLineNumbers() {
     LineReader in = LineReader::fromString("1 2 3\n\n1 2 abc\n1.5\n");
     CHECK(in.next());
     CHECK_PARSE_ERROR_LINE(in.numbers(4), 1); // wrong number of values
@@ -36,11 +40,11 @@ static void testLineReaderErrorsHaveLineNumbers() {
     CHECK_PARSE_ERROR_LINE(in.integer(), 4); // not an integer
 }
 
-static void testLineReaderMissingFile() {
+void testLineReaderMissingFile() {
     CHECK_PARSE_ERROR_LINE(LineReader::fromFile("no_such_file.ifs"), 0);
 }
 
-static void testLineReaderSignsAndExponents() {
+void testLineReaderSignsAndExponents() {
     LineReader in = LineReader::fromString("-0.15 +0.28 1e-3\n");
     CHECK(in.next());
     const auto v = in.numbers(3);
@@ -49,19 +53,21 @@ static void testLineReaderSignsAndExponents() {
     CHECK_NEAR(v[2], 0.001, 1e-12);
 }
 
-static void testImageBasics() {
+void testImageBasics() {
     Image img(4, 3, Color(1, 2, 3));
-    CHECK(img.width() == 4 && img.height() == 3);
+    CHECK(img.width() == 4);
+    CHECK(img.height() == 3);
     CHECK(img.get(3, 2) == Color(1, 2, 3));
 
     img.set(-1, 0, Color(255, 0, 0)); // outside image — no effect, no crash
     img.set(4, 0, Color(255, 0, 0));
     img.set(2, 1, Color(9, 9, 9));
     CHECK(img.get(2, 1) == Color(9, 9, 9));
-    CHECK(img.bytes()[(1 * 4 + 2) * 4] == 9); // RGBA layout, row by row
+    const std::size_t redByteOfPixel21 = ((std::size_t{1} * 4) + 2) * 4; // (row * width + col) * 4 bytes
+    CHECK(img.bytes()[redByteOfPixel21] == 9);                           // RGBA layout, row by row
 }
 
-static void testDrawLine() {
+void testDrawLine() {
     Image img(10, 10);
     const Color white(255, 255, 255);
     img.drawLine(0, 0, 9, 9, white);
@@ -73,6 +79,8 @@ static void testDrawLine() {
     for (int x = 0; x < 10; ++x)
         CHECK(img2.get(x, 5) == white);
 }
+
+} // namespace
 
 int main() {
     testLineReaderSkipsCommentsAndCountsLines();

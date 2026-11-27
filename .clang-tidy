@@ -20,7 +20,8 @@ Checks: >
   -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
   -cppcoreguidelines-pro-bounds-constant-array-index,
   -readability-uppercase-literal-suffix,
-  -performance-enum-size
+  -performance-enum-size,
+  -bugprone-signed-bitwise
 
 # Why the extra exclusions above:
 #  - pro-type-vararg: ImGui::Text() & co. are printf-style; there is no alternative API.
@@ -28,6 +29,7 @@ Checks: >
 #    would force .at() in every pixel loop; indices there are already range-checked.
 #  - uppercase-literal-suffix: the codebase (and SFML/ImGui examples) use 1.f, 2u.
 #  - performance-enum-size: a 4-byte enum costs nothing here.
+#  - signed-bitwise: ImGui flags are plain int enums combined with '|' by design.
 
 WarningsAsErrors: ''
 
