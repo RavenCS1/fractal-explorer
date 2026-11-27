@@ -15,7 +15,19 @@ Checks: >
   -readability-braces-around-statements,
   -bugprone-easily-swappable-parameters,
   -readability-isolate-declaration,
-  -cppcoreguidelines-pro-bounds-pointer-arithmetic
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-vararg,
+  -cppcoreguidelines-pro-bounds-avoid-unchecked-container-access,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -readability-uppercase-literal-suffix,
+  -performance-enum-size
+
+# Why the extra exclusions above:
+#  - pro-type-vararg: ImGui::Text() & co. are printf-style; there is no alternative API.
+#  - pro-bounds-avoid-unchecked-container-access / pro-bounds-constant-array-index:
+#    would force .at() in every pixel loop; indices there are already range-checked.
+#  - uppercase-literal-suffix: the codebase (and SFML/ImGui examples) use 1.f, 2u.
+#  - performance-enum-size: a 4-byte enum costs nothing here.
 
 WarningsAsErrors: ''
 
@@ -27,7 +39,20 @@ CheckOptions:
     value: 'true'
   - key:   cppcoreguidelines-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
     value: 'true'
+  # do { ... } while (0) and nested ifs inside CHECK-style macros are not "real" code.
+  - key:   cppcoreguidelines-avoid-do-while.IgnoreMacros
+    value: 'true'
+  - key:   readability-function-cognitive-complexity.IgnoreMacros
+    value: 'true'
+
+  # Naming
   - key:   readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key:   readability-identifier-naming.StructCase
+    value: CamelCase
+  - key:   readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key:   readability-identifier-naming.EnumConstantCase
     value: CamelCase
   - key:   readability-identifier-naming.FunctionCase
     value: camelBack
@@ -35,7 +60,21 @@ CheckOptions:
     value: camelBack
   - key:   readability-identifier-naming.PrivateMemberSuffix
     value: '_'
-  - key:   readability-identifier-naming.ConstantCase
-    value: camelBack
-  - key:   readability-identifier-naming.EnumConstantCase
+  # Named compile-time constants: kCamelCase (e.g. kPanelWidth, kMaxIterations).
+  - key:   readability-identifier-naming.ConstexprVariableCase
     value: CamelCase
+  - key:   readability-identifier-naming.ConstexprVariablePrefix
+    value: 'k'
+  - key:   readability-identifier-naming.GlobalConstantCase
+    value: CamelCase
+  - key:   readability-identifier-naming.GlobalConstantPrefix
+    value: 'k'
+  - key:   readability-identifier-naming.StaticConstantCase
+    value: CamelCase
+  - key:   readability-identifier-naming.StaticConstantPrefix
+    value: 'k'
+  # Ordinary `const` locals and parameters are just variables: camelBack (e.g. const int dx).
+  - key:   readability-identifier-naming.LocalConstantCase
+    value: camelBack
+  - key:   readability-identifier-naming.ConstantParameterCase
+    value: camelBack

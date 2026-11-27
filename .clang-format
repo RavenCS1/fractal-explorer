@@ -37,3 +37,4 @@ SpaceBeforeParens: ControlStatements
 SpacesInAngles: Never
 
 FixNamespaceComments: true
+InsertNewlineAtEOF: true
