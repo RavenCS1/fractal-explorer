@@ -1,4 +1,7 @@
 add_library(fe_complex STATIC
+    ComplexView.cpp
+    Palette.cpp
+    ComplexRenderer.cpp
     MandelbrotRenderer.cpp
     JuliaRenderer.cpp
 )

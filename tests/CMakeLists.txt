@@ -1,6 +1,11 @@
 # Headless tests. Run with: ctest --test-dir build --output-on-failure
 # Everyone can add their own test file (e.g. ifs_tests.cpp) and link their module.
 
+add_executable(complex_tests complex_tests.cpp)
+target_link_libraries(complex_tests PRIVATE fe_complex)
+fe_setup_target(complex_tests)
+add_test(NAME complex_tests COMMAND complex_tests)
+
 add_executable(core_tests core_tests.cpp)
 target_link_libraries(core_tests PRIVATE fe_core)
 fe_setup_target(core_tests)
