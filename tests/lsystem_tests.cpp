@@ -130,7 +130,7 @@ void testMissingSections() {
     CHECK_PARSE_ERROR_LINE(parseText("axiom F\nangle 90\n"), 0);                // no iterations
 }
 
-// --- expand() ---
+// --- test expand() ---
 
 LSystem makeKoch(int iterations) {
     LSystem s;
