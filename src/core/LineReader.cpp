@@ -23,7 +23,7 @@ std::string trim(const std::string& s) {
 } // namespace
 
 LineReader LineReader::fromFile(const std::string& path) {
-    std::ifstream file(path, std::ios::binary);
+    const std::ifstream file(path, std::ios::binary);
     if (!file)
         throw ParseError(0, "Cannot open file: " + path);
     std::ostringstream ss;

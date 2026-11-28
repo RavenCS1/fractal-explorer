@@ -25,7 +25,7 @@ inline int& testFailures() {
     do {                                                                                                               \
         bool thrown_ = false;                                                                                          \
         try {                                                                                                          \
-            expr;                                                                                                      \
+            (void)(expr);                                                                                              \
         } catch (const ParseError& e_) {                                                                               \
             thrown_ = true;                                                                                            \
             CHECK(e_.line() == (expectedLine));                                                                        \
